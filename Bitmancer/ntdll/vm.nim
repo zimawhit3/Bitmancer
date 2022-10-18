@@ -1,0 +1,199 @@
+
+
+import
+    ../core/obfuscation/hash,
+    ../syscalls
+
+export
+    syscalls
+
+## Compile Time Settings
+##------------------------------------------------------------------------
+const
+    ## NtAllocateVirtualMemory Syscall Settings
+    ##---------------------------------------------------------------------
+    AllocExeEnum*   {.intDefine.} = SyscallExecution.Indirect
+    AllocSsnEnum*   {.intDefine.} = SsnEnumeration.ZwCounter
+    AllocSymEnum*   {.intDefine.} = SymbolEnumeration.UseEAT
+
+    ## NtFreeVirtualmemory Syscall Settings
+    ##---------------------------------------------------------------------
+    FreeExeEnum*    {.intDefine.} = SyscallExecution.Indirect
+    FreeSsnEnum*    {.intDefine.} = SsnEnumeration.ZwCounter
+    FreeSymEnum*    {.intDefine.} = SymbolEnumeration.UseEAT
+
+    ## NtProtectVirtualMemory Syscall Settings
+    ##---------------------------------------------------------------------
+    ProtectExeEnum* {.intDefine.} = SyscallExecution.Indirect
+    ProtectSsnEnum* {.intDefine.} = SsnEnumeration.ZwCounter
+    ProtectSymEnum* {.intDefine.} = SymbolEnumeration.UseEAT
+    
+    ## NtWriteVirtualMemory Syscall Settings
+    ##---------------------------------------------------------------------
+    WriteExeEnum*   {.intDefine.} = SyscallExecution.Indirect
+    WriteSsnEnum*   {.intDefine.} = SsnEnumeration.ZwCounter
+    WriteSymEnum*   {.intDefine.} = SymbolEnumeration.UseEAT
+
+## Hashes
+##---------------------------------------------------------------------
+const
+    NtAllocateVirtualMemoryHash*    = ctDjb2 "NtAllocateVirtualMemory"
+    NtFreeVirtualMemoryHash*        = ctDjb2 "NtFreeVirtualMemory"
+    NtProtectVirtualMemoryHash*     = ctDjb2 "NtProtectVirtualMemory"
+    NtWriteVirtualMemoryHash*       = ctDjb2 "NtWriteVirtualMemory"
+
+## Nt* Memory APIs
+##------------------------------------------------------------------------
+template PROCESS_MEMORY_ALLOC*(allocBase: var PVOID, regionSize: var SIZE_T, allocType, protect: ULONG): NtResult[void] =
+    eNtAllocateVirtualMemory(RtlCurrentProcess(), allocBase, regionSize, allocType, protect)
+
+template PROCESS_MEMORY_FREE*(allocBase: var PVOID, regionSize: var SIZE_T): NtResult[void] =
+    eNtFreeVirtualMemory(RtlCurrentProcess(), allocBase, regionSize, MEM_RELEASE)
+
+template PROCESS_MEMORY_PROTECT*(allocBase: var PVOID, allocSz: var SIZE_T, protections: ULONG): NtResult[void] =
+    eNtProtectVirtualMemory(allocBase, allocSz, protections, NULL)
+
+## NtAllocateVirtualMemory
+##------------------------------------
+template getNtAllocateVirtualMemory*(
+    Ntdll: ModuleHandle,
+    importBase: ModuleHandle, 
+    symEnum: static SymbolEnumeration = AllocSymEnum, 
+    ssnEnum: static SsnEnumeration = AllocSsnEnum, 
+    exeEnum: static SyscallExecution = AllocExeEnum
+): NtSyscall[NtAllocateVirtualMemory] =
+    ctGetNtSyscall[NtAllocateVirtualMemory](Ntdll, importBase, NtAllocateVirtualMemoryHash, symEnum, ssnEnum, exeEnum)
+
+proc eNtAllocateVirtualMemory*(
+    processHandle: HANDLE,
+    baseAddress: var PVOID, 
+    regionSize: var SIZE_T, 
+    allocType: ULONG, 
+    protect: ULONG
+): NtResult[void] =
+    genSyscall(NtAllocateVirtualMemory)
+    let 
+        Ntdll       = ? NTDLL_BASE()
+        NtSyscall   = 
+            when AllocSymEnum == SymbolEnumeration.UseEAT:
+                getNtAllocateVirtualMemory(Ntdll, ModuleHandle(NULL))
+            elif AllocSymEnum == SymbolEnumeration.UseIAT:
+                let Kernel32 = ? KERNEL32_BASE()
+                getNtAllocateVirtualMemory(Ntdll, Kernel32)
+    
+    NT_RESULT NtAllocateVirtualMemoryWrapper(
+        processHandle, 
+        baseAddress, 
+        0, 
+        regionSize, 
+        allocType, 
+        protect,
+        NtSyscall.wSyscall, NtSyscall.pSyscall, NtSyscall.pFunction
+    ): void
+
+## NtFreeVirtualmemory
+##------------------------------------
+template getNtFreeVirtualMemory*(
+    Ntdll: ModuleHandle,
+    importBase: ModuleHandle,
+    symEnum: static SymbolEnumeration = FreeSymEnum, 
+    ssnEnum: static SsnEnumeration = FreeSsnEnum, 
+    exeEnum: static SyscallExecution = FreeExeEnum
+): NtSyscall[NtFreeVirtualMemory] =
+    ctGetNtSyscall[NtFreeVirtualMemory](Ntdll, importBase, NtFreeVirtualMemoryHash, symEnum, ssnEnum, exeEnum)
+
+proc eNtFreeVirtualMemory*(
+    processHandle: HANDLE, 
+    baseAddress: var PVOID, 
+    sz: var SIZE_T, 
+    dwFlags: ULONG
+): NtResult[void] {.discardable.} =
+    genSyscall(NtFreeVirtualMemory)
+    let 
+        Ntdll       = ? NTDLL_BASE()
+        NtSyscall   = 
+            when FreeSymEnum == SymbolEnumeration.UseEAT:
+                getNtFreeVirtualMemory(Ntdll, ModuleHandle(NULL))
+            elif FreeSymEnum == SymbolEnumeration.UseIAT:
+                let Kernel32 = ? KERNEL32_BASE()
+                getNtFreeVirtualMemory(Ntdll, Kernel32)
+    
+    NT_RESULT NtFreeVirtualMemoryWrapper(
+        processHandle, 
+        baseAddress, 
+        sz, 
+        dwFlags,
+        NtSyscall.wSyscall, NtSyscall.pSyscall, NtSyscall.pFunction
+    ): void
+
+## NtProtectVirtualMemory
+##------------------------------------
+template getNtProtectVirtualMemory*(
+    Ntdll: ModuleHandle,
+    importBase: ModuleHandle,
+    symEnum: static SymbolEnumeration = ProtectSymEnum, 
+    ssnEnum: static SsnEnumeration = ProtectSsnEnum, 
+    exeEnum: static SyscallExecution = ProtectExeEnum
+): NtSyscall[NtProtectVirtualMemory] =
+    ctGetNtSyscall[NtProtectVirtualMemory](Ntdll, importBase, NtProtectVirtualMemoryHash, symEnum, ssnEnum, exeEnum)
+
+proc eNtProtectVirtualMemory*(
+    protectBase: var PVOID, 
+    protectSz: var SIZE_T, 
+    protections: ULONG, 
+    oldProtections: PULONG
+): NtResult[void] {.discardable.} = 
+    genSyscall(NtProtectVirtualMemory)
+    let 
+        Ntdll           = ? NTDLL_BASE()
+        NtSyscall       = 
+            when ProtectSymEnum == SymbolEnumeration.UseEAT:
+                getNtProtectVirtualMemory(Ntdll, ModuleHandle(NULL))
+            elif ProtectSymEnum == SymbolEnumeration.UseIAT:
+                let Kernel32 = ? KERNEL32_BASE()
+                getNtProtectVirtualMemory(Ntdll, Kernel32)
+    NT_RESULT NtProtectVirtualMemoryWrapper(
+        RtlCurrentProcess(), 
+        protectBase, 
+        protectSz, 
+        protections, 
+        oldProtections,
+        NtSyscall.wSyscall, NtSyscall.pSyscall, NtSyscall.pFunction
+    ): void
+    
+## NtWriteVirtualMemory
+##------------------------------------
+template getNtWriteVirtualMemory*(
+    Ntdll: ModuleHandle,
+    importBase: ModuleHandle,
+    symEnum: static SymbolEnumeration = WriteSymEnum, 
+    ssnEnum: static SsnEnumeration = WriteSsnEnum, 
+    exeEnum: static SyscallExecution = WriteExeEnum
+): NtSyscall[NtWriteVirtualMemory] =
+    ctGetNtSyscall[NtWriteVirtualMemory](Ntdll, importBase, NtWriteVirtualMemoryHash, symEnum, ssnEnum, exeEnum)
+
+proc eNtWriteVirtualMemory*(
+    processHandle: HANDLE, 
+    allocBase: PVOID, 
+    memBase: PVOID, 
+    memSz: SIZE_T,
+    bytesWritten: PULONG
+): NtResult[void] =
+    genSyscall(NtWriteVirtualMemory)
+    let 
+        Ntdll       = ? NTDLL_BASE()
+        NtSyscall   = 
+            when WriteSymEnum == SymbolEnumeration.UseEAT:
+                getNtWriteVirtualMemory(Ntdll, ModuleHandle(NULL))
+            elif WriteSymEnum == SymbolEnumeration.UseIAT:
+                let Kernel32 = ? KERNEL32_BASE()
+                getNtWriteVirtualMemory(Ntdll, Kernel32)
+    
+    NT_RESULT NtWriteVirtualMemoryWrapper(
+        processHandle, 
+        allocBase, 
+        memBase, 
+        ULONG(memSz),
+        bytesWritten,
+        NtSyscall.wSyscall, NtSyscall.pSyscall, NtSyscall.pFunction
+    ): void
