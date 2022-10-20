@@ -18,7 +18,7 @@
 ## 
 ##----------------------------------------------------------------------------------
 import
-    std/[macros, unicode],
+    std/macros,
     pebteb, utils
 
 export
@@ -200,8 +200,8 @@ func cmpUnicodeStrings*(us1: PWSTR, len1: SIZE_T, us2: PWSTR, len2: SIZE_T, ci: 
             c1 = LONG(s1[])
             c2 = LONG(s2[])
             if c1 != c2:
-                c1 = LONG(toUpper(Rune(c1)))
-                c2 = LONG(toUpper(Rune(c2)))
+                c1 = LONG(LOWER_CASE(cast[char](c1)))
+                c2 = LONG(LOWER_CASE(cast[char](c2)))
                 if c1 != c2:
                     return LONG(c1 - c2)
             inc s1
