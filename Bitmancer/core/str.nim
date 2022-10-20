@@ -17,7 +17,6 @@
 ##  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ## 
 ##----------------------------------------------------------------------------------
-
 import
     std/[macros, unicode],
     pebteb, utils
@@ -27,26 +26,36 @@ export
 
 ## Private
 ##------------------------------------------------------------------------
-proc makeStringBracket(s: string, wide: static bool): NimNode {.compileTime.} =
-    result = newNimNode(nnkBracket)
-    for c in s:
-        let 
-            commandNode = newNimNode(nnkCommand)
-            ident       = ident"byte"
-            charLit     = newLit(c)
-        commandNode.add ident
-        commandNode.add charLit
-
-        if wide:
-            let 
-                castNode    = newNimNode(nnkCast)
-                castIdent   = ident"uint16"
-            castNode.add castIdent
-            castNode.add commandNode
-            result.add castNode
-        else:
-            result.add commandNode
-    result.add newIntLitNode(0)
+proc assignChars(smt: NimNode, varName: NimNode, varValue: string, wide: bool) {.compileTime.} =
+    var
+        asnNode:        NimNode
+        bracketExpr:    NimNode
+        dotExpr:        NimNode
+        castIdent:      NimNode
+    for i in 0 ..< varValue.len():
+        asnNode     = newNimNode(nnkAsgn)
+        bracketExpr = newNimNode(nnkBracketExpr)
+        dotExpr     = newNimNode(nnkDotExpr)
+        castIdent   =
+            if wide:    ident"uint16"
+            else:       ident"uint8"
+        bracketExpr.add(varName)
+        bracketExpr.add(newIntLitNode(i))
+        dotExpr.add(newLit(varValue[i]))
+        dotExpr.add(castIdent)
+        asnNode.add bracketExpr
+        asnNode.add dotExpr
+        smt.add asnNode
+    asnNode     = newNimNode(nnkAsgn)
+    bracketExpr = newNimNode(nnkBracketExpr)
+    dotExpr     = newNimNode(nnkDotExpr)
+    bracketExpr.add(varName)
+    bracketExpr.add(newIntLitNode(varValue.len()))
+    dotExpr.add(newLit(0))
+    dotExpr.add(castIdent)
+    asnNode.add bracketExpr
+    asnNode.add dotExpr
+    smt.add asnNode
 
 proc makeBracketExpression(s: string, wide: static bool): NimNode =
     result = newNimNode(nnkBracketExpr)
@@ -63,23 +72,27 @@ const
 
 ## Stack Strings
 ##------------------------------------
-macro stackStringW*(v: untyped, t: untyped, s: static string) =
+macro stackStringA*(varName: untyped, varType: untyped, varValue: static string) =
     result = newStmtList()
     let 
-        bracketExpr = makeBracketExpression(s, true)
-        bracket     = makeStringBracket(s, true)
-        identDef    = newIdentDefs(v, bracketExpr, bracket)
+        bracketExpr = makeBracketExpression(varValue, false)
+        identDef    = newIdentDefs(varName, bracketExpr)
         varSect     = newNimNode(nnkVarSection).add identDef
     result.add varSect
+    result.assignChars(varName, varValue, false)
+    when defined(nimDumpStackStrings):
+        echo repr result
 
-macro stackStringA*(v: untyped, t: untyped, s: static string) =
+macro stackStringW*(varName: untyped, varType: untyped, varValue: static string) =
     result = newStmtList()
     let 
-        bracketExpr = makeBracketExpression(s, false)
-        bracket     = makeStringBracket(s, false)
-        identDef    = newIdentDefs(v, bracketExpr, bracket)
+        bracketExpr = makeBracketExpression(varValue, true)
+        identDef    = newIdentDefs(varName, bracketExpr)
         varSect     = newNimNode(nnkVarSection).add identDef
     result.add varSect
+    result.assignChars(varName, varValue, true)
+    when defined(nimDumpStackStrings):
+        echo repr result
 
 ## Utility Templates
 ##------------------------------------
