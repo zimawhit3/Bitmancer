@@ -1,6 +1,6 @@
 vpath %.exe build/
 vpath %.dll build/
-vpath %.nim src/ examples/
+vpath %.nim Bitmancer/ examples/
 vpath %.c cache/
 
 CC 			= x86_64-w64-mingw32-gcc
@@ -29,12 +29,12 @@ LDFLAGS := -e NimMainModule --gc-sections -s --no-seh --disable-runtime-pseudo-r
 ## Nim Libs
 ## TODO: dynamically find this lib
 ## if you're going to use this makefile, make sure to set this!
-NIMBASE := -I/home/anon/.choosenim/toolchains/nim-1.6.8/lib
-NIMBASE += -I$(shell bash -c 'echo $$PWD')/src
+NIMBASE := -I${HOME}/.choosenim/toolchains/nim-1.6.8/lib
+NIMBASE += -I$(shell bash -c 'echo $$PWD')/Bitmancer
 CFLAGS := $(NIMBASE) $(CFLAGS)
 
 ## Sources
-NIMS 		= $(notdir $(wildcard src/*.nim))
+NIMS 		= $(notdir $(wildcard Bitmancer/*.nim))
 EXMS 		= $(notdir $(wildcard examples/*.nim))
 BINS 		= $(NIMS:.nim=.exe)
 EXBINS 		= $(EXMS:.nim=.exe)
