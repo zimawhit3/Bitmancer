@@ -16,10 +16,10 @@ Bitmancer is not yet part of the nimble repository. For the timebeing, you can i
 `nimble install https://github.com/zimawhit3/Bitmancer`
 
 ## Compiling
-Bitmancer takes extra care not to introduce dependencies to be fully a standalone library by either resolving APIs at run-time, or using a custom implementation. If introducing dependencies are not of concern for you, you can simply run: <br>
-`nim c -d:mingw -d:release -d:danger <Your_Nim_File>`
+MingW and Nim will introduce dependencies on MSVCRT and Kernel32, as well as global variables used by Nim's System module. If you want to avoid these for position independent code, use the provided nim.cfg.
 
-MingW and Nim will introduce dependencies on MSVCRT and Kernel32, as well as global variables used by Nim's System module. To avoid these, I've included a Makefile that could be useful for you if you're looking to avoid these dependencies. In future version I plan on releasing a build script to make this an easier process.
+To compile:
+`nim c -d:mingw <Your_Nim_File>`
 
 ## Usage
 For all modules:
@@ -37,12 +37,11 @@ import Bitmancer/core/obfuscation/hash
 ```
 
 ## Current TODOs:
-* [ ] Build Scripts
 * [ ] Compile Time defines simplified (YAML?)
 * [ ] CI/CD
 * [ ] Examples
 * [ ] Documentation
-* [ ] Larger compile-time Hash Seed
+* [x] Larger compile-time Hash Seed
 * [ ] Tests!
 
 ## Features
@@ -102,7 +101,7 @@ var wStr {.stackStringW.} = "Hello!"
 var cStr {.stackStringA.} = "World!"
 ```
 
-If you're looking to generate a wrapper around a syscall not currently available:
+If you're looking to generate a wrapper around a syscall not currently available, the basic flow is as follows:
 ```nim
 ## Import syscalls
 import Bitmancer/syscalls
@@ -149,4 +148,5 @@ let NtSyscall = ctGetNtSyscall[NtClose](Ntdll, ModuleHandle(NULL), NtCloseHash, 
 ## Finally, call the wrapper!
 NtCloseWrapper(h, NtSyscall.wSyscall, NtSyscall.pSyscall, NtSyscall.pFunction)
 ```
-See also the [ntdll](./Bitmancer/ntdll/) for more examples.
+See the [runShellCode example](./examples/runShellcode.nim) for a complete example.  
+More examples can also be found in [ntdll](./Bitmancer/ntdll/).
