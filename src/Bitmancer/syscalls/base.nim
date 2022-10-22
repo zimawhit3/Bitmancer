@@ -43,13 +43,13 @@ type
     SsnEnumeration* {.pure.} = enum
         HalosGate       ## Halos' Gate SSN retrieval
         HellsGate       ## Hell's Gate SSN retrieval
+        LdrThunks       ## Utilize Ldr's Thunk Signatures to load a fresh NTDLL from disk and resolve needed SSNs.
         TartarusGate    ## Tartarus' Gate SSN retrieval
         ZwCounter       ## Utilize Nt/Zw* stub memory address ordering
 
     SymbolEnumeration* {.pure.} = enum
         UseEAT,         ## Use the NTDLL's Export Address Table to resolve SSNs and syscall instruction addresses.
         UseIAT,         ## Use the Kernel32's Import Address Table to resolve SSNs and syscall instruction addresses.
-        UseLdrThunks    ## Use the Ldr's Thunk Signatures to load a fresh NTDLL from disk and resolve needed functions
 
     SyscallExecution* {.pure.} = enum
         Direct,         ## Execute system call directly.
@@ -71,9 +71,9 @@ const
 
 ## Helpers
 ##------------------------------------
-template checkValidOSVersionTarget*(symEnum: SymbolEnumeration) =
+template checkValidOSVersionTarget*(ssnEnum: SsnEnumeration) =
     static:
-        when OsVer < OS_10_Threadhold1 and symEnum == SymbolEnumeration.UseLdrThunks:
+        when OsVer < OS_10_Threadhold1 and ssnEnum == SsnEnumeration.LdrThunks:
             {.fatal: """UseLdrThunks uses the LdrpThunkSignatures to load a fresh copy of NTDLL to parse. These
                 signatures are only available on versions of Windows 10 and later.""".}
 

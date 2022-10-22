@@ -88,7 +88,7 @@ proc eNtClose*(h: HANDLE): NtResult[void] {.discardable.} =
     let 
         Ntdll       = ? NTDLL_BASE()
         NtSyscall   = 
-            when CloseSymEnum in {UseEAT, UseLdrThunks}:
+            when CloseSymEnum == SymbolEnumeration.UseEAT:
                 ? getNtClose(Ntdll, ModuleHandle(NULL))
             elif CloseSymEnum == SymbolEnumeration.UseIAT:
                 let Kernel32 = ? KERNEL32_BASE()

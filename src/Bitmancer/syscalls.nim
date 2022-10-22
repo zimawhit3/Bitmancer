@@ -38,16 +38,17 @@ template ctGetSyscall*(
     symEnum: static[SymbolEnumeration], 
     ssnEnum: static[SsnEnumeration]): SyscallResult =
     block:
-        checkValidOSVersionTarget(symEnum)
-        when symEnum == SymbolEnumeration.UseLdrThunks:     bLdrThunks(imageBase, ident)
-        elif symEnum == SymbolEnumeration.UseEAT:
+        checkValidOSVersionTarget(ssnEnum)
+        when symEnum == SymbolEnumeration.UseEAT:
             when ssnEnum == SsnEnumeration.HalosGate:       bHalosGateEat(imageBase, ident)
             elif ssnEnum == SsnEnumeration.HellsGate:       bHellsGateEat(imageBase, ident)
+            elif ssnEnum == SsnEnumeration.LdrThunks:       bLdrThunks(imageBase, ident)
             elif ssnEnum == SsnEnumeration.TartarusGate:    bTartarusGateEat(imageBase, ident)
             elif ssnEnum == SsnEnumeration.ZwCounter:       bZwCounterEat(imageBase, ident)
         elif symEnum == SymbolEnumeration.UseIAT:
             when ssnEnum == SsnEnumeration.HalosGate:       bHalosGateIat(imageBase, importBase, ident)
             elif ssnEnum == SsnEnumeration.HellsGate:       bHellsGateIat(imageBase, importBase, ident)
+            elif ssnEnum == SsnEnumeration.LdrThunks:       bLdrThunks(imageBase, ident)
             elif ssnEnum == SsnEnumeration.TartarusGate:    bTartarusGateIat(imageBase, importBase, ident)
             elif ssnEnum == SsnEnumeration.ZwCounter:       bZwCounterIat(importBase, ident)
 
