@@ -17,7 +17,6 @@
 ##  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ## 
 ##----------------------------------------------------------------------------------
-
 import
     ../core/obfuscation/hash,
     ../syscalls
@@ -47,8 +46,8 @@ template getNtFlushInstructionCache*(
     symEnum: static SymbolEnumeration = FlushSymEnum, 
     ssnEnum: static SsnEnumeration = FlushSsnEnum,
     exeEnum: static SyscallExecution = FlushExeEnum
-): NtSyscall[NtFlushInstructionCache] =
-    ctGetNtSyscall[NtFlushInstructionCache](Ntdll, importBase, NtFlushInstructionCacheHash, symEnum, ssnEnum, exeEnum)
+): NtResult[NtSyscall[NtFlushInstructionCache]] =
+    getNtSyscall[NtFlushInstructionCache](Ntdll, importBase, NtFlushInstructionCacheHash, symEnum, ssnEnum, exeEnum)
 
 proc eNtFlushInstructionCache*(processHandle: HANDLE, baseAddress: PVOID, dwSize: SIZE_T): NtResult[void] {.discardable.} =
     genSyscall(NtFlushInstructionCache)
@@ -56,10 +55,10 @@ proc eNtFlushInstructionCache*(processHandle: HANDLE, baseAddress: PVOID, dwSize
         Ntdll     = ? NTDLL_BASE()
         NtSyscall =
             when FlushSymEnum == SymbolEnumeration.UseEAT:
-                getNtFlushInstructionCache(Ntdll, ModuleHandle(NULL))
+                ? getNtFlushInstructionCache(Ntdll, ModuleHandle(NULL))
             elif FlushSymEnum == SymbolEnumeration.UseIAT:
                 let Kernel32 = ? KERNEL32_BASE()
-                getNtFlushInstructionCache(Ntdll, Kernel32)
+                ? getNtFlushInstructionCache(Ntdll, Kernel32)
 
     NT_RESULT NtFlushInstructionCacheWrapper(
         processHandle, 
@@ -67,4 +66,3 @@ proc eNtFlushInstructionCache*(processHandle: HANDLE, baseAddress: PVOID, dwSize
         dwSize, 
         NtSyscall.wSyscall, NtSyscall.pSyscall, NtSyscall.pFunction
     ): void
-        

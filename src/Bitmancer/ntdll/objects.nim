@@ -17,7 +17,6 @@
 ##  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ## 
 ##----------------------------------------------------------------------------------
-
 import
     ../core/obfuscation/hash,
     ../syscalls
@@ -81,8 +80,8 @@ template getNtClose*(
     symEnum: static SymbolEnumeration = CloseSymEnum, 
     ssnEnum: static SsnEnumeration = CloseSsnEnum, 
     exeEnum: static SyscallExecution = CloseExeEnum
-): NtSyscall[NtClose] =
-    ctGetNtSyscall[NtClose](Ntdll, importBase, NtCloseHash, symEnum, ssnEnum, exeEnum)
+): NtResult[NtSyscall[NtClose]] =
+    getNtSyscall[NtClose](Ntdll, importBase, NtCloseHash, symEnum, ssnEnum, exeEnum)
 
 proc eNtClose*(h: HANDLE): NtResult[void] {.discardable.} =
     genSyscall(NtClose)
@@ -90,10 +89,10 @@ proc eNtClose*(h: HANDLE): NtResult[void] {.discardable.} =
         Ntdll       = ? NTDLL_BASE()
         NtSyscall   = 
             when CloseSymEnum in {UseEAT, UseLdrThunks}:
-                getNtClose(Ntdll, ModuleHandle(NULL))
+                ? getNtClose(Ntdll, ModuleHandle(NULL))
             elif CloseSymEnum == SymbolEnumeration.UseIAT:
                 let Kernel32 = ? KERNEL32_BASE()
-                getNtClose(Ntdll, Kernel32)
+                ? getNtClose(Ntdll, Kernel32)
     NT_RESULT NtCloseWrapper(h, NtSyscall.wSyscall, NtSyscall.pSyscall, NtSyscall.pFunction): void
 
 ## NtCreateSection
@@ -104,8 +103,8 @@ template getNtCreateSection*(
     symEnum: static SymbolEnumeration = CreateSymEnum,
     ssnEnum: static SsnEnumeration = CreateSsnEnum,
     exeEnum: static SyscallExecution = CreateExeEnum
-): NtSyscall[NtCreateSection] =
-    ctGetNtSyscall[NtCreateSection](Ntdll, importBase, NtCreateSectionHash, symEnum, ssnEnum, exeEnum)
+): NtResult[NtSyscall[NtCreateSection]] =
+    getNtSyscall[NtCreateSection](Ntdll, importBase, NtCreateSectionHash, symEnum, ssnEnum, exeEnum)
 
 proc eNtCreateSection*(
     sectionHandle: var HANDLE,
@@ -121,10 +120,10 @@ proc eNtCreateSection*(
         Ntdll       = ? NTDLL_BASE()
         NtSyscall   = 
             when CreateSymEnum == SymbolEnumeration.UseEAT:
-                getNtCreateSection(Ntdll, ModuleHandle(NULL))
+                ? getNtCreateSection(Ntdll, ModuleHandle(NULL))
             elif CreateSymEnum == SymbolEnumeration.UseIAT:
                 let Kernel32 = ? KERNEL32_BASE()
-                getNtCreateSection(Ntdll, Kernel32)
+                ? getNtCreateSection(Ntdll, Kernel32)
     NT_RESULT NtCreateSectionWrapper(
         sectionHandle,
         desiredAccess,
@@ -144,8 +143,8 @@ template getNtMapViewOfSection*(
     symEnum: static SymbolEnumeration = MapViewSymEnum,
     ssnEnum: static SsnEnumeration = MapViewSsnEnum,
     exeEnum: static SyscallExecution = MapViewExeEnum
-): NtSyscall[NtMapViewOfSection] =
-    ctGetNtSyscall[NtMapViewOfSection](Ntdll, importBase, NtMapViewOfSectionHash, symEnum, ssnEnum, exeEnum)
+): NtResult[NtSyscall[NtMapViewOfSection]] =
+    getNtSyscall[NtMapViewOfSection](Ntdll, importBase, NtMapViewOfSectionHash, symEnum, ssnEnum, exeEnum)
 
 proc eNtMapViewOfSection*(
     sectionHandle: HANDLE,
@@ -164,10 +163,10 @@ proc eNtMapViewOfSection*(
         Ntdll       = ? NTDLL_BASE()
         NtSyscall   = 
             when MapViewSymEnum == SymbolEnumeration.UseEAT:
-                getNtMapViewOfSection(Ntdll, ModuleHandle(NULL))
+                ? getNtMapViewOfSection(Ntdll, ModuleHandle(NULL))
             elif MapViewSymEnum == SymbolEnumeration.UseIAT:
                 let Kernel32 = ? KERNEL32_BASE()
-                getNtMapViewOfSection(Ntdll, Kernel32)
+                ? getNtMapViewOfSection(Ntdll, Kernel32)
     NT_RESULT NtMapViewOfSectionWrapper(
         sectionHandle,
         processHandle,
@@ -190,8 +189,8 @@ template getNtOpenFile*(
     symEnum: static SymbolEnumeration = OpenFileSymEnum, 
     ssnEnum: static SsnEnumeration = OpenFileSsnEnum, 
     exeEnum: static SyscallExecution = OpenFileExeEnum
-): NtSyscall[NtOpenFile] =
-    ctGetNtSyscall[NtOpenFile](Ntdll, importBase, NtOpenFileHash, symEnum, ssnEnum, exeEnum)
+): NtResult[NtSyscall[NtOpenFile]] =
+    getNtSyscall[NtOpenFile](Ntdll, importBase, NtOpenFileHash, symEnum, ssnEnum, exeEnum)
 
 proc eNtOpenFile*(
     fileHandle: var HANDLE,
@@ -206,10 +205,10 @@ proc eNtOpenFile*(
         Ntdll       = ? NTDLL_BASE()
         NtSyscall   = 
             when OpenFileSymEnum == SymbolEnumeration.UseEAT:
-                getNtOpenFile(Ntdll, ModuleHandle(NULL))
+                ? getNtOpenFile(Ntdll, ModuleHandle(NULL))
             elif OpenFileSymEnum == SymbolEnumeration.UseIAT:
                 let Kernel32 = ? KERNEL32_BASE()
-                getNtOpenFile(Ntdll, Kernel32)
+                ? getNtOpenFile(Ntdll, Kernel32)
 
     NT_RESULT NtOpenFileWrapper(
         fileHandle,
@@ -229,8 +228,8 @@ template getNtOpenSection*(
     symEnum: static SymbolEnumeration = OpenSectionSymEnum, 
     ssnEnum: static SsnEnumeration = OpenSectionSsnEnum, 
     exeEnum: static SyscallExecution = OpenSectionExeEnum
-): NtSyscall[NtOpenSection] =
-    ctGetNtSyscall[NtOpenSection](Ntdll, importBase, NtOpenSectionHash, symEnum, ssnEnum, exeEnum)
+): NtResult[NtSyscall[NtOpenSection]] =
+    getNtSyscall[NtOpenSection](Ntdll, importBase, NtOpenSectionHash, symEnum, ssnEnum, exeEnum)
 
 proc eNtOpenSection*(sectionHandle: var HANDLE, desiredAccess: ACCESS_MASK, objAttributes: POBJECT_ATTRIBUTES): NtResult[void] =
     genSyscall(NtOpenSection)
@@ -238,10 +237,10 @@ proc eNtOpenSection*(sectionHandle: var HANDLE, desiredAccess: ACCESS_MASK, objA
         Ntdll = ? NTDLL_BASE()
         NtSyscall =
             when OpenSectionSymEnum == SymbolEnumeration.UseEAT:
-                getNtOpenSection(Ntdll, ModuleHandle(NULL))
+                ? getNtOpenSection(Ntdll, ModuleHandle(NULL))
             elif OpenSectionSymEnum == SymbolEnumeration.UseIAT:
                 let Kernel32 = ? KERNEL32_BASE()
-                getNtOpenSection(Ntdll, Kernel32)
+                ? getNtOpenSection(Ntdll, Kernel32)
     NT_RESULT NtOpenSectionWrapper(
         sectionHandle,
         desiredAccess,
@@ -257,8 +256,8 @@ template getNtUnmapViewOfSection*(
     symEnum: static SymbolEnumeration = UnmapViewSymEnum,
     ssnEnum: static SsnEnumeration = UnmapViewSsnEnum,
     exeEnum: static SyscallExecution = UnmapViewExeEnum
-): NtSyscall[NtUnmapViewOfSection] =
-    ctGetNtSyscall[NtUnmapViewOfSection](Ntdll, importBase, NtUnmapViewOfSectionHash, symEnum, ssnEnum, exeEnum)
+): NtResult[NtSyscall[NtUnmapViewOfSection]] =
+    getNtSyscall[NtUnmapViewOfSection](Ntdll, importBase, NtUnmapViewOfSectionHash, symEnum, ssnEnum, exeEnum)
 
 proc eNtUnmapViewOfSection*(processHandle: HANDLE, baseAddress: PVOID): NtResult[void] {.discardable.} =
     genSyscall(NtUnmapViewOfSection)
@@ -266,10 +265,10 @@ proc eNtUnmapViewOfSection*(processHandle: HANDLE, baseAddress: PVOID): NtResult
         Ntdll       = ? NTDLL_BASE()
         NtSyscall   = 
             when UnmapViewSymEnum == SymbolEnumeration.UseEAT:
-                getNtUnmapViewOfSection(Ntdll, ModuleHandle(NULL))
+                ? getNtUnmapViewOfSection(Ntdll, ModuleHandle(NULL))
             elif UnmapViewSymEnum == SymbolEnumeration.UseIAT:
                 let Kernel32 = ? KERNEL32_BASE()
-                getNtUnmapViewOfSection(Ntdll, Kernel32)
+                ? getNtUnmapViewOfSection(Ntdll, Kernel32)
     
     NT_RESULT NtUnmapViewOfSectionWrapper(
         processHandle, 

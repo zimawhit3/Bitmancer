@@ -70,13 +70,14 @@ template NT_STUB*[T](syscall: tuple[wSyscall: WORD, pSyscall: PVOID, isHooked: b
         else:
             cast[T](spoofStub)
 
-template ctGetNtSyscall*[T](
+proc getNtSyscall*[T](
     Ntdll: ModuleHandle,
     importBase: ModuleHandle,
     ident: static[uint32], 
     symEnum: static[SymbolEnumeration], 
     ssnEnum: static[SsnEnumeration],
-    exeEnum: static[SyscallExecution]): NtSyscall[T] =
+    exeEnum: static[SyscallExecution]
+): NtResult[NtSyscall[T]] {.inline.} =
     let 
         sysRes      = ? ctGetSyscall(Ntdll, importBase, ident, symEnum, ssnEnum)
         funct       = NT_STUB[T](sysRes, exeEnum)
@@ -86,7 +87,7 @@ template ctGetNtSyscall*[T](
             elif exeEnum == SyscallExecution.Indirect: 
                 getSyscallInstruction sysRes.pSyscall
 
-    NtSyscall[T](
+    ok NtSyscall[T](
         wSyscall: sysRes.wSyscall, 
         pSyscall: pSyscall,
         pFunction: funct, 

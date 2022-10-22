@@ -17,7 +17,6 @@
 ##  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ## 
 ##----------------------------------------------------------------------------------
-
 import
     ../core/obfuscation/hash,
     ../syscalls
@@ -86,8 +85,8 @@ template getNtQuerySystemInformation*(
     symEnum: static SymbolEnumeration = SysInfoSymEnum, 
     ssnEnum: static SsnEnumeration = SysInfoSsnEnum, 
     exeEnum: static SyscallExecution = SysInfoExeEnum
-): NtSyscall[NtQuerySystemInformation] =
-    ctGetNtSyscall[NtQuerySystemInformation](Ntdll, importBase, NtQuerySystemInformationHash, symEnum, ssnEnum, exeEnum)
+): NtResult[NtSyscall[NtQuerySystemInformation]] =
+    getNtSyscall[NtQuerySystemInformation](Ntdll, importBase, NtQuerySystemInformationHash, symEnum, ssnEnum, exeEnum)
 
 proc eNtQuerySystemInformation*(systemInfo: PVOID, systemClass: SYSTEM_INFORMATION_CLASS, systemSz: SIZE_T): NtResult[void] =
     genSyscall(NtQuerySystemInformation)
@@ -95,10 +94,10 @@ proc eNtQuerySystemInformation*(systemInfo: PVOID, systemClass: SYSTEM_INFORMATI
         Ntdll       = ? NTDLL_BASE()
         NtSyscall   = 
             when SysInfoSymEnum == SymbolEnumeration.UseEAT:
-                getNtQuerySystemInformation(Ntdll, ModuleHandle(NULL))
+                ? getNtQuerySystemInformation(Ntdll, ModuleHandle(NULL))
             elif SysInfoSymEnum == SymbolEnumeration.UseIAT:
                 let Kernel32 = ? KERNEL32_BASE()
-                getNtQuerySystemInformation(Ntdll, Kernel32)
+                ? getNtQuerySystemInformation(Ntdll, Kernel32)
     
     NT_RESULT NtQuerySystemInformationWrapper(
         systemClass, 
@@ -116,8 +115,8 @@ template getNtQueryPerformanceCounter*(
     symEnum: static SymbolEnumeration = PerfSymEnum,
     ssnEnum: static SsnEnumeration = PerfSsnEnum,
     exeEnum: static SyscallExecution = PerfExeEnum
-): NtSyscall[NtQueryPerformanceCounter] =
-    ctGetNtSyscall[NtQueryPerformanceCounter](Ntdll, importBase, NtQueryPerformanceCounterHash, symEnum, ssnEnum, exeEnum)
+): NtResult[NtSyscall[NtQueryPerformanceCounter]] =
+    getNtSyscall[NtQueryPerformanceCounter](Ntdll, importBase, NtQueryPerformanceCounterHash, symEnum, ssnEnum, exeEnum)
 
 proc eNtQueryPerformanceCounter*(perfCounter: var LARGE_INTEGER, perfFrequency: PLARGE_INTEGER): NtResult[void] {.discardable.} =
     genSyscall(NtQueryPerformanceCounter)
@@ -125,10 +124,10 @@ proc eNtQueryPerformanceCounter*(perfCounter: var LARGE_INTEGER, perfFrequency: 
         Ntdll       = ? NTDLL_BASE()
         NtSyscall   = 
             when PerfSymEnum == SymbolEnumeration.UseEAT:
-                getNtQueryPerformanceCounter(Ntdll, ModuleHandle(NULL))
+                ? getNtQueryPerformanceCounter(Ntdll, ModuleHandle(NULL))
             elif PerfSymEnum == SymbolEnumeration.UseIAT:
                 let Kernel32 = ? KERNEL32_BASE()
-                getNtQueryPerformanceCounter(Ntdll, Kernel32)
+                ? getNtQueryPerformanceCounter(Ntdll, Kernel32)
     NT_RESULT NtQueryPerformanceCounterWrapper(
         perfCounter, 
         perfFrequency,
@@ -153,8 +152,8 @@ template getNtQueryVirtualMemory*(
     symEnum: static[SymbolEnumeration] = VMInfoSymEnum, 
     ssnEnum: static[SsnEnumeration] = VMInfoSsnEnum,
     exeEnum: static[SyscallExecution] = VMInfoExeEnum
-): NtSyscall[NtQueryVirtualMemory] =
-    ctGetNtSyscall[NtQueryVirtualMemory](Ntdll, importBase, NtQueryVirtualMemoryHash, symEnum, ssnEnum, exeEnum)
+): NtResult[NtSyscall[NtQueryVirtualMemory]] =
+    getNtSyscall[NtQueryVirtualMemory](Ntdll, importBase, NtQueryVirtualMemoryHash, symEnum, ssnEnum, exeEnum)
 
 proc eNtQueryVirtualMemory*(
     processHandle: HANDLE, 
@@ -169,10 +168,10 @@ proc eNtQueryVirtualMemory*(
         Ntdll       = ? NTDLL_BASE()
         NtSyscall   = 
             when VMInfoSymEnum == SymbolEnumeration.UseEAT:
-                getNtQueryVirtualMemory(Ntdll, ModuleHandle(NULL))
+                ? getNtQueryVirtualMemory(Ntdll, ModuleHandle(NULL))
             elif VMInfoSymEnum == SymbolEnumeration.UseIAT:
                 let Kernel32 = ? KERNEL32_BASE()
-                getNtQueryVirtualMemory(Ntdll, Kernel32)
+                ? getNtQueryVirtualMemory(Ntdll, Kernel32)
     NT_RESULT NtQueryVirtualMemoryWrapper(
         processHandle, 
         baseAddress, 

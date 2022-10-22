@@ -17,7 +17,6 @@
 ##  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ## 
 ##----------------------------------------------------------------------------------
-
 import
     ../core/obfuscation/hash,
     ../syscalls
@@ -79,8 +78,8 @@ template getNtAllocateVirtualMemory*(
     symEnum: static SymbolEnumeration = AllocSymEnum, 
     ssnEnum: static SsnEnumeration = AllocSsnEnum, 
     exeEnum: static SyscallExecution = AllocExeEnum
-): NtSyscall[NtAllocateVirtualMemory] =
-    ctGetNtSyscall[NtAllocateVirtualMemory](Ntdll, importBase, NtAllocateVirtualMemoryHash, symEnum, ssnEnum, exeEnum)
+): NtResult[NtSyscall[NtAllocateVirtualMemory]] =
+    getNtSyscall[NtAllocateVirtualMemory](Ntdll, importBase, NtAllocateVirtualMemoryHash, symEnum, ssnEnum, exeEnum)
 
 proc eNtAllocateVirtualMemory*(
     processHandle: HANDLE,
@@ -94,10 +93,10 @@ proc eNtAllocateVirtualMemory*(
         Ntdll       = ? NTDLL_BASE()
         NtSyscall   = 
             when AllocSymEnum == SymbolEnumeration.UseEAT:
-                getNtAllocateVirtualMemory(Ntdll, ModuleHandle(NULL))
+                ? getNtAllocateVirtualMemory(Ntdll, ModuleHandle(NULL))
             elif AllocSymEnum == SymbolEnumeration.UseIAT:
                 let Kernel32 = ? KERNEL32_BASE()
-                getNtAllocateVirtualMemory(Ntdll, Kernel32)
+                ? getNtAllocateVirtualMemory(Ntdll, Kernel32)
     
     NT_RESULT NtAllocateVirtualMemoryWrapper(
         processHandle, 
@@ -117,8 +116,8 @@ template getNtFreeVirtualMemory*(
     symEnum: static SymbolEnumeration = FreeSymEnum, 
     ssnEnum: static SsnEnumeration = FreeSsnEnum, 
     exeEnum: static SyscallExecution = FreeExeEnum
-): NtSyscall[NtFreeVirtualMemory] =
-    ctGetNtSyscall[NtFreeVirtualMemory](Ntdll, importBase, NtFreeVirtualMemoryHash, symEnum, ssnEnum, exeEnum)
+): NtResult[NtSyscall[NtFreeVirtualMemory]] =
+    getNtSyscall[NtFreeVirtualMemory](Ntdll, importBase, NtFreeVirtualMemoryHash, symEnum, ssnEnum, exeEnum)
 
 proc eNtFreeVirtualMemory*(
     processHandle: HANDLE, 
@@ -131,10 +130,10 @@ proc eNtFreeVirtualMemory*(
         Ntdll       = ? NTDLL_BASE()
         NtSyscall   = 
             when FreeSymEnum == SymbolEnumeration.UseEAT:
-                getNtFreeVirtualMemory(Ntdll, ModuleHandle(NULL))
+                ? getNtFreeVirtualMemory(Ntdll, ModuleHandle(NULL))
             elif FreeSymEnum == SymbolEnumeration.UseIAT:
                 let Kernel32 = ? KERNEL32_BASE()
-                getNtFreeVirtualMemory(Ntdll, Kernel32)
+                ? getNtFreeVirtualMemory(Ntdll, Kernel32)
     
     NT_RESULT NtFreeVirtualMemoryWrapper(
         processHandle, 
@@ -152,8 +151,8 @@ template getNtProtectVirtualMemory*(
     symEnum: static SymbolEnumeration = ProtectSymEnum, 
     ssnEnum: static SsnEnumeration = ProtectSsnEnum, 
     exeEnum: static SyscallExecution = ProtectExeEnum
-): NtSyscall[NtProtectVirtualMemory] =
-    ctGetNtSyscall[NtProtectVirtualMemory](Ntdll, importBase, NtProtectVirtualMemoryHash, symEnum, ssnEnum, exeEnum)
+): NtResult[NtSyscall[NtProtectVirtualMemory]] =
+    getNtSyscall[NtProtectVirtualMemory](Ntdll, importBase, NtProtectVirtualMemoryHash, symEnum, ssnEnum, exeEnum)
 
 proc eNtProtectVirtualMemory*(
     protectBase: var PVOID, 
@@ -166,10 +165,10 @@ proc eNtProtectVirtualMemory*(
         Ntdll           = ? NTDLL_BASE()
         NtSyscall       = 
             when ProtectSymEnum == SymbolEnumeration.UseEAT:
-                getNtProtectVirtualMemory(Ntdll, ModuleHandle(NULL))
+                ? getNtProtectVirtualMemory(Ntdll, ModuleHandle(NULL))
             elif ProtectSymEnum == SymbolEnumeration.UseIAT:
                 let Kernel32 = ? KERNEL32_BASE()
-                getNtProtectVirtualMemory(Ntdll, Kernel32)
+                ? getNtProtectVirtualMemory(Ntdll, Kernel32)
     NT_RESULT NtProtectVirtualMemoryWrapper(
         RtlCurrentProcess(), 
         protectBase, 
@@ -187,8 +186,8 @@ template getNtWriteVirtualMemory*(
     symEnum: static SymbolEnumeration = WriteSymEnum, 
     ssnEnum: static SsnEnumeration = WriteSsnEnum, 
     exeEnum: static SyscallExecution = WriteExeEnum
-): NtSyscall[NtWriteVirtualMemory] =
-    ctGetNtSyscall[NtWriteVirtualMemory](Ntdll, importBase, NtWriteVirtualMemoryHash, symEnum, ssnEnum, exeEnum)
+): NtResult[NtSyscall[NtWriteVirtualMemory]] =
+    getNtSyscall[NtWriteVirtualMemory](Ntdll, importBase, NtWriteVirtualMemoryHash, symEnum, ssnEnum, exeEnum)
 
 proc eNtWriteVirtualMemory*(
     processHandle: HANDLE, 
@@ -202,10 +201,10 @@ proc eNtWriteVirtualMemory*(
         Ntdll       = ? NTDLL_BASE()
         NtSyscall   = 
             when WriteSymEnum == SymbolEnumeration.UseEAT:
-                getNtWriteVirtualMemory(Ntdll, ModuleHandle(NULL))
+                ? getNtWriteVirtualMemory(Ntdll, ModuleHandle(NULL))
             elif WriteSymEnum == SymbolEnumeration.UseIAT:
                 let Kernel32 = ? KERNEL32_BASE()
-                getNtWriteVirtualMemory(Ntdll, Kernel32)
+                ? getNtWriteVirtualMemory(Ntdll, Kernel32)
     
     NT_RESULT NtWriteVirtualMemoryWrapper(
         processHandle, 

@@ -17,7 +17,6 @@
 ##  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ## 
 ##----------------------------------------------------------------------------------
-
 import
     ldrlocks
 
@@ -177,7 +176,7 @@ proc ldrSetProtections(ctx: PLoadContext): NtResult[void] =
     let 
         Ntdll       = ? NTDLL_BASE()
         NtHeaders   = ? imageNtHeader ctx.entry.DLLBase.ModuleHandle
-        NtSyscall   = getNtProtectVirtualMemory(Ntdll, ModuleHandle(NULL))
+        NtSyscall   = ? getNtProtectVirtualMemory(Ntdll, ModuleHandle(NULL))
     var
         isReadable      = false
         isWriteable     = false
@@ -253,7 +252,7 @@ proc ldrUnsetProtections*(ctx: PLoadContext): NtResult[void] =
     let 
         Ntdll               = ? NTDLL_BASE()
         NtHeaders           = ? imageNtHeader ctx.entry.DLLBase.ModuleHandle
-        NtProtectSyscall    = getNtProtectVirtualMemory(Ntdll, ModuleHandle(NULL))
+        NtProtectSyscall    = ? getNtProtectVirtualMemory(Ntdll, ModuleHandle(NULL))
     
     for Section in NtHeaders.sections():
         if Section.SizeOfRawData != 0 and Section.VirtualAddress != 0:

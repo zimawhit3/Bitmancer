@@ -17,7 +17,6 @@
 ##  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ## 
 ##----------------------------------------------------------------------------------
-
 import
     ../ldrbase
 export
@@ -63,8 +62,8 @@ proc ldrMapMemoryImage(ctx: PLoadContext): NtResult[void] =
     let 
         Ntdll           = ? NTDLL_BASE()
         NtHeaders       = ? imageNtHeader ctx.buffer.ModuleHandle
-        NtAllocSyscall  = getNtAllocateVirtualMemory(Ntdll, ModuleHandle(NULL))
-        NtFreeSyscall   = getNtFreeVirtualMemory(Ntdll, ModuleHandle(NULL))
+        NtAllocSyscall  = ? getNtAllocateVirtualMemory(Ntdll, ModuleHandle(NULL))
+        NtFreeSyscall   = ? getNtFreeVirtualMemory(Ntdll, ModuleHandle(NULL))
     
     moduleBase = cast[PVOID](NtHeaders.OptionalHeader.ImageBase)
     moduleSize = NtHeaders.OptionalHeader.SizeOfImage
@@ -248,7 +247,7 @@ proc ldrUnmapMemoryImage(ctx: PLoadContext): NtResult[void] =
     genSyscall(NtFreeVirtualMemory)
     let 
         Ntdll           = ? NTDLL_BASE()
-        NtFreeSyscall   = getNtFreeVirtualMemory(Ntdll, ModuleHandle(NULL))
+        NtFreeSyscall   = ? getNtFreeVirtualMemory(Ntdll, ModuleHandle(NULL))
     var tmpSize                 = SIZE_T(0)
     when UseSystemGranularity:
         var 
