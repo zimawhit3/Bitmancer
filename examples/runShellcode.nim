@@ -1,5 +1,5 @@
-import ../Bitmancer/syscalls
-import ../Bitmancer/core/obfuscation/hash
+import ../src/Bitmancer/syscalls
+import ../src/Bitmancer/core/obfuscation/hash
 
 # ----------------------------------------------------------------------------
 # Define syscalls

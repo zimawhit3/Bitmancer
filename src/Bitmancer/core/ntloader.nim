@@ -26,7 +26,7 @@ export
     pe
 
 type
-    SomeLdrIdent* = cstring|DWORD|PWSTR|ModuleHandle
+    SomeLdrIdent* = cstring|uint32|PWSTR|ModuleHandle
 
     LdrList* {.pure.} = enum
         InitializationOrder, LoadOrder, MemoryOrder
@@ -156,13 +156,13 @@ func removeListEntry*(entry: PLIST_ENTRY) {.inline.} =
 ##------------------------------------
 template GET_LDR_LIST*(ident: SomeLdrIdent, list: LdrList): NtResult[PLDR_DATA_TABLE_ENTRY] =
     when ident is cstring:      getLdrEntryListA(ident, list)
-    elif ident is DWORD:        getLdrEntryListH(ident, list)
+    elif ident is uint32:       getLdrEntryListH(ident, list)
     elif ident is ModuleHandle: getLdrEntryListM(ident, list)
     elif ident is PWSTR:        getLdrEntryListW(ident, list)
 
 template GET_LDR_LIST_EX*(ident: SomeLdrIdent, list: LdrList): NtResult[PLDR_DATA_TABLE_ENTRY] =
     when ident is cstring:      getLdrEntryListExA(ident, list)
-    elif ident is DWORD:        getLdrEntryListExH(ident, list)
+    elif ident is uint32:       getLdrEntryListExH(ident, list)
     elif ident is ModuleHandle: getLdrEntryListExM(ident, list)
     elif ident is PWSTR:        getLdrEntryListExW(ident, list)
 
@@ -213,14 +213,14 @@ func getLdrEntryListExA*(baseName: cstring, list: LdrList): NtResult[PLDR_DATA_T
                 return ok entry
     err LdrEntryNotFound
 
-func getLdrEntryListH*(baseNameHash: DWORD, list: LdrList): NtResult[PLDR_DATA_TABLE_ENTRY] =
+func getLdrEntryListH*(baseNameHash: uint32, list: LdrList): NtResult[PLDR_DATA_TABLE_ENTRY] =
     if baseNameHash != 0:
         for entry in listForwardEntries list:
             if baseNameHash == HASH_W entry.BaseDllName:
                 return ok entry
     err LdrEntryNotFound
 
-func getLdrEntryListExH*(baseNameHash: DWORD, list: LdrList): NtResult[PLDR_DATA_TABLE_ENTRY] =
+func getLdrEntryListExH*(baseNameHash: uint32, list: LdrList): NtResult[PLDR_DATA_TABLE_ENTRY] =
     if baseNameHash != 0:
         for entry in listForwardEntries list:
             if baseNameHash == HASH_W entry.BaseDllName:
@@ -301,7 +301,7 @@ func push(s: var IndexStack, n: PRTL_BALANCED_NODE) {.inline.} =
 ##------------------
 template GET_LDR_INDEX*(ident: SomeLdrIdent, list: LdrList, index: LdrIndex): NtResult[PLDR_DATA_TABLE_ENTRY] =
     when ident is cstring:      getLdrEntryIndexA(ident, list, index)
-    elif ident is DWORD:        getLdrEntryIndexH(ident, list, index)
+    elif ident is uint32:       getLdrEntryIndexH(ident, list, index)
     elif ident is ModuleHandle: getLdrEntryIndexM(ident, list, index)
     elif ident is PWSTR:        getLdrEntryIndexW(ident, list, index)
 
@@ -341,7 +341,7 @@ func getLdrEntryIndexA*(baseName: cstring, list: LdrList, index: LdrIndex): NtRe
                 return ok entry
     err LdrEntryNotFound
 
-func getLdrEntryIndexH*(baseNameHash: DWORD, list: LdrList, index: LdrIndex): NtResult[PLDR_DATA_TABLE_ENTRY] =
+func getLdrEntryIndexH*(baseNameHash: uint32, list: LdrList, index: LdrIndex): NtResult[PLDR_DATA_TABLE_ENTRY] =
     if baseNameHash != 0:
         for entry in indexEntries(list, index):
             if baseNameHash == HASH_W entry.BaseDllName:

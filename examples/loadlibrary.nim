@@ -1,7 +1,7 @@
 
 
 import 
-    ../Bitmancer
+    ../src/Bitmancer
 
 proc loadlibrary*() =
     var amsi {.stackStringW.} = "\\??\\C:\\Windows\\System32\\RPCRT4.dll"

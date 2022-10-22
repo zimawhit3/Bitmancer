@@ -17,7 +17,6 @@
 ##  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ## 
 ##----------------------------------------------------------------------------------
-
 import
     obfuscation/hash,
     pebteb, utils
@@ -54,13 +53,13 @@ func imageNtHeader*(imageBase: ModuleHandle): NtResult[PIMAGE_NT_HEADERS] {.inli
 
 template IDENT_MATCH*(sym: cstring, ord: WORD, ident: SomeProcIdent): bool =
     when ident is cstring:  ident === sym
-    elif ident is DWORD:    ident == HASH_A sym
+    elif ident is uint32:   ident == HASH_A sym
     elif ident is WORD:     ident == ord
 
 template IDENT_MATCH*(sym: cstring, ident: SomeThunkedIdent): bool =
     let isMatch =
         when ident is cstring:  ident === sym
-        elif ident is DWORD:    ident == HASH_A sym
+        elif ident is uint32:   ident == HASH_A sym
     isMatch
 
 template PE_VALID*(imageBase: ModuleHandle): bool =
@@ -79,7 +78,7 @@ iterator sections*(ntHdr: PIMAGE_NT_HEADERS): PIMAGE_SECTION_HEADER =
     for i in 0.WORD ..< ntHdr.FileHeader.NumberOfSections:
         yield sections[i]
 
-func getPESection*(imageBase: ModuleHandle, sectionHash: DWORD): NtResult[PIMAGE_SECTION_HEADER] =
+func getPESection*(imageBase: ModuleHandle, sectionHash: uint32): NtResult[PIMAGE_SECTION_HEADER] =
     let NtHeaders = ? imageNtHeader imageBase
     for section in NtHeaders.sections():
         let sectionName = cast[cstring](addr section.Name[0])

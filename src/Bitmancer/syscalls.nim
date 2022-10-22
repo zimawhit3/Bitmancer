@@ -73,7 +73,7 @@ template NT_STUB*[T](syscall: tuple[wSyscall: WORD, pSyscall: PVOID, isHooked: b
 template ctGetNtSyscall*[T](
     Ntdll: ModuleHandle,
     importBase: ModuleHandle,
-    ident: static[DWORD], 
+    ident: static[uint32], 
     symEnum: static[SymbolEnumeration], 
     ssnEnum: static[SsnEnumeration],
     exeEnum: static[SyscallExecution]): NtSyscall[T] =

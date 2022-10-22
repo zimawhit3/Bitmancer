@@ -17,15 +17,14 @@
 ##  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ## 
 ##----------------------------------------------------------------------------------
-
 import 
     types/[api, base, cfg, exceptions, loader, ntmmapi, pe, pebteb, shared, sync]
 export 
     api, base, cfg, exceptions, loader, ntmmapi, pe, pebteb, shared, sync
 
 type
-    SomeProcIdent*      = cstring|DWORD|WORD
-    SomeThunkedIdent*   = cstring|DWORD
+    SomeProcIdent*      = cstring|uint32|WORD
+    SomeThunkedIdent*   = cstring|uint32
     
     ## Distinct pointer for module base addresses.
     ModuleHandle* = distinct pointer

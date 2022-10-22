@@ -17,41 +17,47 @@
 ##  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ## 
 ##----------------------------------------------------------------------------------
-
 import
+    std/[random, parseutils],
     ../types
 
 export
     types
 
 ## CompileTime and RunTime Hashing
-##  TODO: generate a bigger seed
 ##------------------------------------------------------------------------
+proc genRandomSeed(): uint32 {.compileTime.} =
+    var seed: int
+    discard parseInt(staticExec("bash -c 'echo $SRANDOM'"), seed, 0)
+    echo "[+] Seeded with: " & $seed
+    var rng = initRand(seed)
+    rng.rand(uint32.high).uint32
+
 const
-    HashSeed* {.intDefine.} = int32(0xC0DE)
+    HashSeed* = genRandomSeed()
 
-func ctDjb2*(pFuncName: static[cstring]): int32 {.compileTime.} =
+func ctDjb2*(pFuncName: static[cstring]): uint32 {.compileTime.} =
     result = HashSeed
     for c in pFuncName:
-        result = ((result shl 0x05) +% result) +% ord(c).int32
+        result = ((result shl 0x05) + result) + ord(c).uint32
 
-func rtDjb2*(pFuncName: cstring): int32 =
+func rtDjb2*(pFuncName: cstring): uint32 =
     result = HashSeed
     for c in pFuncName:
-        result = ((result shl 0x05) +% result) + ord(c).int32
+        result = ((result shl 0x05) + result) + ord(c).uint32
 
-func rtDjb2*(pFuncName: PCWSTR): int32 =
-    result = HashSeed
+func rtDjb2*(pFuncName: PCWSTR): uint32 =
+    result  = HashSeed
     var i   = 0
     let ws  = cast[ptr UncheckedArray[uint16]](pFuncName)
     while ws[i] != 0:
-        result = ((result shl 0x05) +% result) + ord(cast[char](ws[i])).int32
+        result = ((result shl 0x05) + result) + ord(cast[char](ws[i])).uint32
         inc i
 
-template HASH_A*(s: cstring): DWORD =
+template HASH_A*(s: cstring): uint32 =
     rtDjb2(s)
 
-template HASH_W*(s: PCWSTR|UNICODE_STRING): DWORD =
+template HASH_W*(s: PCWSTR|UNICODE_STRING): uint32 =
     when s is PCWSTR:
         rtDjb2(s)
     elif s is UNICODE_STRING:
