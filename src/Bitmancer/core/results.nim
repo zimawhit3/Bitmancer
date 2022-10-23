@@ -72,6 +72,12 @@ func error*[T, E](self: Result[T, E]): E =
     when E isnot void:
         self.e
 
+template value*[T, E](self: Result[T, E]): T = 
+    self.get()
+
+template value*[T: not void, E](self: var Result[T, E]): var T = 
+    self.get()
+
 template valueOr*[T: not void, E](self: Result[T, E], def: untyped): T =
     let s = (self)
     if s.o: 

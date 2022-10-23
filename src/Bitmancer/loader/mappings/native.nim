@@ -17,7 +17,6 @@
 ##  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ## 
 ##----------------------------------------------------------------------------------
-
 import 
     ../ldrbase
 
@@ -47,7 +46,7 @@ proc ldrMapNativeModule*(ctx: PLoadContext): NtResult[void] =
     RTL_INIT_EMPTY_UNICODE_STRING(objPath, objBuffer, USHORT(objBuffer.len() * sizeOf(WCHAR)))
     InitializeObjectAttributes(addr objAttributes, addr objPath, 0, sHandle, NULL)
     
-    ? eNtOpenFile(
+    ? ntOpenFile(
         fHandle, 
         ACCESS_MASK(SYNCHRONIZE or FILE_READ_DATA or FILE_EXECUTE), 
         addr objAttributes, 
@@ -56,7 +55,7 @@ proc ldrMapNativeModule*(ctx: PLoadContext): NtResult[void] =
         ULONG(FILE_NON_DIRECTORY_FILE or FILE_SYNCHRONOUS_IO_NONALERT)
     )
 
-    if eNtCreateSection(
+    if ntCreateSection(
         sHandle,
         ACCESS_MASK(SECTION_QUERY or SECTION_MAP_READ or SECTION_MAP_EXECUTE),
         NULL,
@@ -65,12 +64,12 @@ proc ldrMapNativeModule*(ctx: PLoadContext): NtResult[void] =
         SEC_IMAGE,
         fHandle
     ).isErr():
-        eNtClose(fHandle)
+        ntClose(fHandle)
         return err SyscallFailure
 
-    if eNtMapViewOfSection(
+    if ntMapViewOfSection(
         sHandle,
-        RtlCurrentProcess(),
+        rtlCurrentProcess(),
         mapBase,
         0,
         0,
@@ -80,8 +79,8 @@ proc ldrMapNativeModule*(ctx: PLoadContext): NtResult[void] =
         0,
         PAGE_READONLY
     ).isErr():
-        eNtClose(sHandle)
-        eNtClose(fHandle)
+        ntClose(sHandle)
+        ntClose(fHandle)
         return err SyscallFailure
     
     ctx.fileHandle          = fHandle
@@ -91,10 +90,10 @@ proc ldrMapNativeModule*(ctx: PLoadContext): NtResult[void] =
     ok()
 
 proc ldrUnmapNativeModule*(ctx: PLoadContext): NtResult[void] =
-    eNtUnmapViewOfSection(RtlCurrentProcess(), ctx.entry.DLLBase)
-    eNtClose(ctx.sectHandle)
+    ntUnmapViewOfSection(rtlCurrentProcess(), ctx.entry.DLLBase)
+    ntClose(ctx.sectHandle)
     ctx.sectHandle = 0
-    eNtClose(ctx.fileHandle)
+    ntClose(ctx.fileHandle)
     ctx.fileHandle = 0
     ok()
 

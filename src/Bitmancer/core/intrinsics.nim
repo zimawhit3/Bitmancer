@@ -17,7 +17,6 @@
 ##  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ## 
 ##----------------------------------------------------------------------------------
-
 proc addressOfReturnAddress*(): pointer {.importc: "_AddressOfReturnAddress", header: "intrin.h".}
 proc debugbreak*() {.importc: "__debugbreak", header: "_mingw.h".}
 proc interlockedIncrement16*(value: ptr int16): int16   {.importc: "_InterlockedIncrement16", header: "<intrin.h>".}

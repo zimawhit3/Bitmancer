@@ -24,6 +24,10 @@ import
 export
     pebteb
 
+type
+    SomeProcIdent*      = cstring|uint32|WORD
+    SomeThunkedIdent*   = cstring|uint32
+
 ## Portable Executable
 ##------------------------------------------------------------------------
 
@@ -57,10 +61,8 @@ template IDENT_MATCH*(sym: cstring, ord: WORD, ident: SomeProcIdent): bool =
     elif ident is WORD:     ident == ord
 
 template IDENT_MATCH*(sym: cstring, ident: SomeThunkedIdent): bool =
-    let isMatch =
-        when ident is cstring:  ident === sym
-        elif ident is uint32:   ident == HASH_A sym
-    isMatch
+    when ident is cstring:  ident === sym
+    elif ident is uint32:   ident == HASH_A sym
 
 template PE_VALID*(imageBase: ModuleHandle): bool =
     imageNtHeader(imageBase).isOk()   

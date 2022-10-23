@@ -63,7 +63,7 @@ proc eFreeLibrary*(ctx: PLoadContext): NtResult[void] =
 
     ## Remove exceptions
     if ctx.entry.isSet(InExceptionTable):
-        if (let remove = cRtlRemoveInvertedFuncTableEntry ctx.entry.DLLBase.ModuleHandle; remove.isErr()):
+        if (let remove = rtlRemoveInvertedFuncTableEntry ctx.entry.DLLBase.ModuleHandle; remove.isErr()):
             result = remove
 
     ## Unmap module
@@ -94,7 +94,7 @@ proc eLoadLibrary*(
     ## Verify DLL not already loaded
     if LDR_MODULE_PRESENT loader:
         if not loader.entry.isNil():
-            eRtlFreeHeap(RtlProcessHeap(), 0, loader.entry)
+            PROCESS_HEAP_FREE(loader.entry)
         loader.entry = ? GET_LDR_LIST(loader.entry.BaseDllName.Buffer, LoadOrder)
         inc loader.entry.DdagNode.LoadCount
         return ok loader

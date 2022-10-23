@@ -22,7 +22,7 @@ import
     procedures
 
 export
-    errors, results, types
+    ntresult, types
 
 func enumFindLock64*(fStart, tFunction: PVOID, callIndex: int): NtResult[PRTL_SRWLOCK] =
     ## Search the target function `fStart` for the first call to the target

@@ -28,22 +28,25 @@ export
 const 
     SeperationBytes = QWORD 0x0000000000841F0F  ## nop dword ptr ds:[rax+rax], eax
     BarrierBytes    = QWORD 0xCCCCCCCCCCCCCCCC
+    SyscallBytes    = WORD 0x050F
 type
-    SyscallResult* = NtResult[tuple[wSyscall: WORD, pSyscall: PVOID, isHooked: bool]]
+    Syscall* {.byCopy.} = object
+        wSyscall*:  WORD
+        pSyscall*:  PVOID
+    SyscallResult* = NtResult[Syscall]
 
 ## Helper Templates
 ##------------------------------------
 template isValidStub(currentByte: PVOID): bool =
+    ## First opcodes should be :
+    ##    MOV R10, RCX
+    ##    MOV RCX, <syscall>
     cast[PBYTE](currentByte)[] == 0x4C and 
     cast[PBYTE](currentByte +! 1)[] == 0x8B and
     cast[PBYTE](currentByte +! 2)[] == 0xD1 and 
     cast[PBYTE](currentByte +! 3)[] == 0xB8 and
     cast[PBYTE](currentByte +! 6)[] == 0x00 and
     cast[PBYTE](currentByte +! 7)[] == 0x00
-
-## Forward Declarations
-##------------------------------------
-func checkStub*(functionBase: PVOID, offset: DWORD, isHooked: bool): SyscallResult {.inline.}
 
 ## Public
 ##------------------------------------
@@ -61,11 +64,11 @@ iterator ntStubs*(pFirstStub: UINT_PTR): UINT_PTR =
         if breakLoop:
             NEXT_ADDRESS currentQword
 
-func isHighestAddress*(pStub: UINT_PTR): bool {.inline.} =
+template isHighestAddress*(pStub: UINT_PTR): bool =
     cast[PQWORD](pstub -% sizeof(UINT_PTR))[] == BarrierBytes
 
-func isHooked*(pStub: PVOID): bool {.inline.} =
-    not checkStub(pStub, 0, false).isOk()
+template isHooked*(pStub: PVOID): bool =
+    not checkStub(pStub, 0).isOk()
 
 func searchNtStubUp*(pStub: UINT_PTR): UINT_PTR =
     var currentQword = cast[PQWORD](pStub)
@@ -73,21 +76,25 @@ func searchNtStubUp*(pStub: UINT_PTR): UINT_PTR =
         PREV_ADDRESS currentQword
     cast[UINT_PTR](currentQword)
 
-func checkStub*(functionBase: PVOID, offset: DWORD, isHooked: bool): SyscallResult {.inline.} =
-    ## First opcodes should be :
-    ##    MOV R10, RCX
-    ##    MOV RCX, <syscall>
+func getSyscallInstruction*(stub: PVOID): NtResult[PVOID] =
+    let syscall = stub +! 0x12
+    if cast[PWORD](syscall)[] != SyscallBytes:
+        err SearchNotFound
+    else:
+        ok syscall
+
+func checkStub*(functionBase: PVOID, offset: DWORD): SyscallResult =
+    ## Checks the stub at the offset from the functionBase for an unhooked syscall stub.
     if isValidStub(functionBase +! offset):
         let
             highByte    = cast[PBYTE](functionBase +! offset +! 5)[]
             lowByte     = cast[PBYTE](functionBase +! offset +! 4)[]
             wSyscall    = WORD((highByte shr 8) or lowByte)
-        ok (wSyscall, functionBase, isHooked)
+            pSyscall    = ? getSyscallInstruction(functionBase +! offset)
+        ok Syscall(
+            wSyscall: wSyscall, 
+            pSyscall: pSyscall
+        )
     else:
         err SyscallNotFound
 
-func getSyscallInstruction*(stub: PVOID): PVOID =
-    var currWord = cast[PWORD](stub)
-    while currWord[] != 0x050F:
-        currWord = cast[PWORD](currWord +! 2)
-    cast[PVOID](currWord)

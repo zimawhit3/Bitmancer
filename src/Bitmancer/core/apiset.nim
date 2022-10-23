@@ -35,7 +35,7 @@ const
 ## Helpers
 ##------------------------------------
 func isApiSetLib*(ws: PWSTR): bool =
-    ## Check the name begins with "api-" or "ext-"
+    ## Check the name begins with "API-" or "EXT-"
     var prefix = cast[PQWORD](ws)[]
     prefix &= (not 0x0000002000200020)
     prefix == API_SET_PREFIX_API_W or prefix == API_SET_PREFIX_EXT_W
@@ -248,7 +248,7 @@ func resolveApiSetV6(apiSet: PAPI_SET_NAMESPACE_V6, apiSetName: var UNICODE_STRI
 ## Public
 ##------------------------------------------------------------------------
 func resolveApiSet*(apiSetName: var UNICODE_STRING, parent: PUNICODE_STRING = NULL): NtResult[void] =
-    let apiset  = GetApiSet()    
+    let apiset  = getApiSet()    
     if apiset.Version == API_SET_SCHEMA_VERSION_V3:
         resolveApiSetV3(apiset, apiSetName)
     

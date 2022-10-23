@@ -49,7 +49,7 @@ template getNtFlushInstructionCache*(
 ): NtResult[NtSyscall[NtFlushInstructionCache]] =
     getNtSyscall[NtFlushInstructionCache](Ntdll, importBase, NtFlushInstructionCacheHash, symEnum, ssnEnum, exeEnum)
 
-proc eNtFlushInstructionCache*(processHandle: HANDLE, baseAddress: PVOID, dwSize: SIZE_T): NtResult[void] {.discardable.} =
+proc ntFlushInstructionCache*(processHandle: HANDLE, baseAddress: PVOID, dwSize: SIZE_T): NtResult[void] {.discardable.} =
     genSyscall(NtFlushInstructionCache)
     let
         Ntdll     = ? NTDLL_BASE()
@@ -64,5 +64,5 @@ proc eNtFlushInstructionCache*(processHandle: HANDLE, baseAddress: PVOID, dwSize
         processHandle, 
         baseAddress, 
         dwSize, 
-        NtSyscall.wSyscall, NtSyscall.pSyscall, NtSyscall.pFunction
+        NtSyscall
     ): void

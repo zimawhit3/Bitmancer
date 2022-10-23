@@ -17,7 +17,6 @@
 ##  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ## 
 ##----------------------------------------------------------------------------------
-
 import
     ../core
 
@@ -26,7 +25,7 @@ export
 
 ## InvertedFunctionTable
 ##------------------------------------    
-func cRtlpInsertInvertedFuncTableEntry*(Ift: PINVERTED_FUNCTION_TABLE, imageBase: ModuleHandle, imageSz: SIZE_T): NtResult[void] =
+func rtlpInsertInvertedFuncTableEntry*(Ift: PINVERTED_FUNCTION_TABLE, imageBase: ModuleHandle, imageSz: SIZE_T): NtResult[void] =
     var index = ULONG(0)
     if Ift.CurrentSize != Ift.MaximumSize:
 
@@ -51,7 +50,7 @@ func cRtlpInsertInvertedFuncTableEntry*(Ift: PINVERTED_FUNCTION_TABLE, imageBase
         Ift.OverFlow = TRUE
     ok()
     
-func cRtlpRemoveInvertedFuncTableEntry*(Ift: PINVERTED_FUNCTION_TABLE, imageBase: ModuleHandle) =
+func rtlpRemoveInvertedFuncTableEntry*(Ift: PINVERTED_FUNCTION_TABLE, imageBase: ModuleHandle) =
     for index in 0 ..< Ift.CurrentSize:
         if imageBase == Ift.TableEntries[index].ImageBase:
             if Ift.CurrentSize != 1:

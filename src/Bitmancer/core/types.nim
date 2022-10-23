@@ -23,9 +23,6 @@ export
     api, base, cfg, exceptions, loader, ntmmapi, pe, pebteb, shared, sync
 
 type
-    SomeProcIdent*      = cstring|uint32|WORD
-    SomeThunkedIdent*   = cstring|uint32
-    
     ## Distinct pointer for module base addresses.
     ModuleHandle* = distinct pointer
 

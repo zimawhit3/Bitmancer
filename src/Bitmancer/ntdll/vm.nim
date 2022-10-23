@@ -62,13 +62,13 @@ const
 ## Nt* Memory APIs
 ##------------------------------------------------------------------------
 template PROCESS_MEMORY_ALLOC*(allocBase: var PVOID, regionSize: var SIZE_T, allocType, protect: ULONG): NtResult[void] =
-    eNtAllocateVirtualMemory(RtlCurrentProcess(), allocBase, regionSize, allocType, protect)
+    ntAllocateVirtualMemory(RtlCurrentProcess(), allocBase, regionSize, allocType, protect)
 
 template PROCESS_MEMORY_FREE*(allocBase: var PVOID, regionSize: var SIZE_T): NtResult[void] =
-    eNtFreeVirtualMemory(RtlCurrentProcess(), allocBase, regionSize, MEM_RELEASE)
+    ntFreeVirtualMemory(RtlCurrentProcess(), allocBase, regionSize, MEM_RELEASE)
 
 template PROCESS_MEMORY_PROTECT*(allocBase: var PVOID, allocSz: var SIZE_T, protections: ULONG): NtResult[void] =
-    eNtProtectVirtualMemory(allocBase, allocSz, protections, NULL)
+    ntProtectVirtualMemory(allocBase, allocSz, protections, NULL)
 
 ## NtAllocateVirtualMemory
 ##------------------------------------
@@ -81,7 +81,7 @@ template getNtAllocateVirtualMemory*(
 ): NtResult[NtSyscall[NtAllocateVirtualMemory]] =
     getNtSyscall[NtAllocateVirtualMemory](Ntdll, importBase, NtAllocateVirtualMemoryHash, symEnum, ssnEnum, exeEnum)
 
-proc eNtAllocateVirtualMemory*(
+proc ntAllocateVirtualMemory*(
     processHandle: HANDLE,
     baseAddress: var PVOID, 
     regionSize: var SIZE_T, 
@@ -105,7 +105,7 @@ proc eNtAllocateVirtualMemory*(
         regionSize, 
         allocType, 
         protect,
-        NtSyscall.wSyscall, NtSyscall.pSyscall, NtSyscall.pFunction
+        NtSyscall
     ): void
 
 ## NtFreeVirtualmemory
@@ -119,7 +119,7 @@ template getNtFreeVirtualMemory*(
 ): NtResult[NtSyscall[NtFreeVirtualMemory]] =
     getNtSyscall[NtFreeVirtualMemory](Ntdll, importBase, NtFreeVirtualMemoryHash, symEnum, ssnEnum, exeEnum)
 
-proc eNtFreeVirtualMemory*(
+proc ntFreeVirtualMemory*(
     processHandle: HANDLE, 
     baseAddress: var PVOID, 
     sz: var SIZE_T, 
@@ -140,7 +140,7 @@ proc eNtFreeVirtualMemory*(
         baseAddress, 
         sz, 
         dwFlags,
-        NtSyscall.wSyscall, NtSyscall.pSyscall, NtSyscall.pFunction
+        NtSyscall
     ): void
 
 ## NtProtectVirtualMemory
@@ -154,7 +154,7 @@ template getNtProtectVirtualMemory*(
 ): NtResult[NtSyscall[NtProtectVirtualMemory]] =
     getNtSyscall[NtProtectVirtualMemory](Ntdll, importBase, NtProtectVirtualMemoryHash, symEnum, ssnEnum, exeEnum)
 
-proc eNtProtectVirtualMemory*(
+proc ntProtectVirtualMemory*(
     protectBase: var PVOID, 
     protectSz: var SIZE_T, 
     protections: ULONG, 
@@ -170,12 +170,12 @@ proc eNtProtectVirtualMemory*(
                 let Kernel32 = ? KERNEL32_BASE()
                 ? getNtProtectVirtualMemory(Ntdll, Kernel32)
     NT_RESULT NtProtectVirtualMemoryWrapper(
-        RtlCurrentProcess(), 
+        rtlCurrentProcess(), 
         protectBase, 
         protectSz, 
         protections, 
         oldProtections,
-        NtSyscall.wSyscall, NtSyscall.pSyscall, NtSyscall.pFunction
+        NtSyscall
     ): void
     
 ## NtWriteVirtualMemory
@@ -189,7 +189,7 @@ template getNtWriteVirtualMemory*(
 ): NtResult[NtSyscall[NtWriteVirtualMemory]] =
     getNtSyscall[NtWriteVirtualMemory](Ntdll, importBase, NtWriteVirtualMemoryHash, symEnum, ssnEnum, exeEnum)
 
-proc eNtWriteVirtualMemory*(
+proc ntWriteVirtualMemory*(
     processHandle: HANDLE, 
     allocBase: PVOID, 
     memBase: PVOID, 
@@ -212,5 +212,5 @@ proc eNtWriteVirtualMemory*(
         memBase, 
         ULONG(memSz),
         bytesWritten,
-        NtSyscall.wSyscall, NtSyscall.pSyscall, NtSyscall.pFunction
+        NtSyscall
     ): void

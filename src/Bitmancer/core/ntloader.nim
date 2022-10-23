@@ -17,7 +17,6 @@
 ##  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ## 
 ##----------------------------------------------------------------------------------
-
 import
     obfuscation/hash,
     pe, str, utils
@@ -90,10 +89,9 @@ template NODE_PARENT_NODE*(node: PRTL_BALANCED_NODE): PRTL_BALANCED_NODE =
     cast[PRTL_BALANCED_NODE](node.Union2.ParentValue and (not 3))
 
 template NODE_LDR_ENTRY*(node: PRTL_BALANCED_NODE, index: LdrIndex): PLDR_DATA_TABLE_ENTRY =
-    if index == LdrIndex.BaseAddress:
-        CONTAINING_RECORD(node, LDR_DATA_TABLE_ENTRY, BaseAddressIndexNode)
-    else:
-        CONTAINING_RECORD(node, LDR_DATA_TABLE_ENTRY, MappingInfoIndexNode)
+    case index
+    of BaseAddress: CONTAINING_RECORD(node, LDR_DATA_TABLE_ENTRY, BaseAddressIndexNode)
+    of MappingInfo: CONTAINING_RECORD(node, LDR_DATA_TABLE_ENTRY, MappingInfoIndexNode)
     
 func getFirstNode*(node: PRTL_BALANCED_NODE): NtResult[PRTL_BALANCED_NODE] =
     var currentNode = node
@@ -109,21 +107,21 @@ func getFirstNode*(node: PRTL_BALANCED_NODE): NtResult[PRTL_BALANCED_NODE] =
 ## List Entry
 ##------------------------------------
 template LDR_LIST_ORDER*(pPeb: PPEB, list: LdrList): PLIST_ENTRY =
-    if list == InitializationOrder: addr pPeb.Ldr.InInitializationOrderModuleList
-    elif list == LoadOrder:         addr pPeb.Ldr.InLoadOrderModuleList
-    else:                           addr pPeb.Ldr.InMemoryOrderModuleList
+    case list
+    of InitializationOrder: addr pPeb.Ldr.InInitializationOrderModuleList
+    of LoadOrder:           addr pPeb.Ldr.InLoadOrderModuleList
+    of MemoryOrder:         addr pPeb.Ldr.InMemoryOrderModuleList
 
 template LDR_LINK_ORDER*(pEntry: PLIST_ENTRY, list: LdrList): PLDR_DATA_TABLE_ENTRY =
-    if list == InitializationOrder:
-        CONTAINING_RECORD(pEntry, LDR_DATA_TABLE_ENTRY, InInitializationOrderLinks)
-    elif list == LoadOrder:
-        CONTAINING_RECORD(pEntry, LDR_DATA_TABLE_ENTRY, InLoadOrderLinks)
-    else:
-        CONTAINING_RECORD(pEntry, LDR_DATA_TABLE_ENTRY, InMemoryOrderLinks)
+    case list
+    of InitializationOrder: CONTAINING_RECORD(pEntry, LDR_DATA_TABLE_ENTRY, InInitializationOrderLinks)
+    of LoadOrder:           CONTAINING_RECORD(pEntry, LDR_DATA_TABLE_ENTRY, InLoadOrderLinks)
+    of MemoryOrder:         CONTAINING_RECORD(pEntry, LDR_DATA_TABLE_ENTRY, InMemoryOrderLinks)
 
 template LDR_INDEX_ORDER*(pEntry: PLDR_DATA_TABLE_ENTRY, index: LdrIndex): PRTL_BALANCED_NODE =
-    if index == BaseAddress:  addr pEntry.BaseAddressIndexNode
-    else:                     addr pEntry.MappingInfoIndexNode
+    case index
+    of BaseAddress: addr pEntry.BaseAddressIndexNode
+    of MappingInfo: addr pEntry.MappingInfoIndexNode
 
 template INIT_LIST_ENTRY*(entry: PLIST_ENTRY) =
     entry.Flink = entry
@@ -171,9 +169,8 @@ iterator listForwardEntries*(list: LdrList): PLDR_DATA_TABLE_ENTRY =
         pHead   = PLIST_ENTRY(NULL)
         pEntry  = PLIST_ENTRY(NULL)
         pCurr   = PLDR_DATA_TABLE_ENTRY(NULL)
-    let pPeb    = NtCurrentPeb()
 
-    pHead   = LDR_LIST_ORDER(pPeb, list)
+    pHead   = LDR_LIST_ORDER(ntCurrentPeb(), list)
     pEntry  = pHead.Flink
 
     while pHead != pEntry:
@@ -186,9 +183,8 @@ iterator listBackwardEntries*(list: LdrList): PLDR_DATA_TABLE_ENTRY =
         pHead   = PLIST_ENTRY(NULL)
         pEntry  = PLIST_ENTRY(NULL)
         pCurr   = PLDR_DATA_TABLE_ENTRY(NULL)
-    let pPeb    = NtCurrentPeb()
 
-    pHead   = LDR_LIST_ORDER(pPeb, list)
+    pHead   = LDR_LIST_ORDER(ntCurrentPeb(), list)
     pEntry  = pHead.Blink
 
     while pHead != pEntry:
@@ -319,7 +315,7 @@ iterator indexEntries*(list: LdrList, index: LdrIndex): PLDR_DATA_TABLE_ENTRY =
         pCurr   = PLDR_DATA_TABLE_ENTRY(NULL) 
         stack   = IndexStack()
 
-    pHead = LDR_LIST_ORDER(NtCurrentPeb(), list)
+    pHead = LDR_LIST_ORDER(ntCurrentPeb(), list)
     pCurr = LDR_LINK_ORDER(pHead.Flink, list)
     pNode = LDR_INDEX_ORDER(pCurr, index)
     
@@ -407,7 +403,7 @@ template CRT_BASE*(list = LoadOrder): NtResult[ModuleHandle] =
 template NTDLL_BASE*(list: static LdrList = MemoryOrder): NtResult[ModuleHandle] =
     getModuleHandle(NtdllHash, list)
     
-func getNtdllModuleHandleEx*(list: LdrList): NtResult[ModuleHandle] {.inline.} =
+func getNtdllModuleHandleEx*(list: LdrList): NtResult[ModuleHandle] =
     ## Retrieves NTDLL Base Address by looping through the PEB->Ldr Linked List and returning the module with the
     ## greatest BaseAddress, exploiting the fact that NTDLL will always be loaded at the highest address.
     var currentBase = PVOID(NULL)

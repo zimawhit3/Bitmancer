@@ -17,7 +17,6 @@
 ##  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ## 
 ##----------------------------------------------------------------------------------
-
 import
     ../core/obfuscation/hash,
     ldrlocks
@@ -80,21 +79,21 @@ proc getLdrpInvertedFuncTable*(): NtResult[PINVERTED_FUNCTION_TABLE] =
     
     err SearchNotFound
 
-proc cRtlInsertInvertedFuncTableEntry*(imageBase: ModuleHandle, imageSize: SIZE_T): NtResult[void] =
+proc rtlInsertInvertedFuncTableEntry*(imageBase: ModuleHandle, imageSize: SIZE_T): NtResult[void] =
     let InvertedFunctionTable = ? getLdrpInvertedFuncTable()
     ? ldrProtectMrdata(FALSE)
-    result = cRtlpInsertInvertedFuncTableEntry(InvertedFunctionTable, imageBase, imageSize)
+    result = rtlpInsertInvertedFuncTableEntry(InvertedFunctionTable, imageBase, imageSize)
     ? ldrProtectMrdata(TRUE)
 
-proc cRtlRemoveInvertedFuncTableEntry*(imageBase: ModuleHandle): NtResult[void] =
+proc rtlRemoveInvertedFuncTableEntry*(imageBase: ModuleHandle): NtResult[void] =
     let InvertedFunctionTable = ? getLdrpInvertedFuncTable()
     ? ldrProtectMrdata(FALSE)
-    cRtlpRemoveInvertedFuncTableEntry(InvertedFunctionTable, imageBase)
+    rtlpRemoveInvertedFuncTableEntry(InvertedFunctionTable, imageBase)
     ? ldrProtectMrdata(TRUE)
 
 proc ldrProcessExceptions*(ctx: PLoadContext): NtResult[void] =
     let imageBase = ctx.entry.DLLBase.ModuleHandle
-    ? cRtlInsertInvertedFuncTableEntry(imageBase, ctx.entry.SizeOfImage)
+    ? rtlInsertInvertedFuncTableEntry(imageBase, ctx.entry.SizeOfImage)
     ctx.entry.setBit(InExceptionTable)
     ok()
 

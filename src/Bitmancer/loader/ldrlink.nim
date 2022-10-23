@@ -26,7 +26,7 @@ export
 ## Loader Link
 ##------------------------------------------------------------------------
 proc ldrHashUnicode(baseDLLName: PUNICODE_STRING): NtResult[ULONG] =
-    let hash = ? eRtlHashUnicodeString(baseDLLName, TRUE, 0)
+    let hash = ? rtlHashUnicodeString(baseDLLName, TRUE, 0)
     if hash == 0:
         ## TODO Nt Loader returns 0x8000000 here
         return ok -1
@@ -47,11 +47,11 @@ proc getLdrpHashTable*(): NtResult[PLIST_ENTRY] =
 ## Loader Indexes
 ##------------------------------------
 proc ldrAddToIndexes(ctx: PLoadContext) {.inline.} =
-    if RtlInsertNodeBaseAddressIndex(ctx.entry).isOk() and RtlInsertNodeMappingInfoIndex(ctx.entry).isOk():
+    if rtlInsertNodeBaseAddressIndex(ctx.entry).isOk() and rtlInsertNodeMappingInfoIndex(ctx.entry).isOk():
         ctx.entry.setBit(InIndexes)
     
 proc ldrRemoveFromIndexes(ctx: PLoadContext) {.inline.} =
-    if RtlRemoveNodeMappingInfoIndex(ctx.entry).isOk() and RtlRemoveNodeBaseAddressIndex(ctx.entry).isOk():
+    if rtlRemoveNodeMappingInfoIndex(ctx.entry).isOk() and rtlRemoveNodeBaseAddressIndex(ctx.entry).isOk():
         ctx.entry.clearBit(InIndexes)
 
 ## Loader Lists
@@ -60,12 +60,12 @@ proc ldrLinkToLists*(ctx: PLoadContext) =
     if (let LdrpHashTable = getLdrpHashTable(); LdrpHashTable.isOk()):
         let
             LdrpHashIndex   = ctx.entry.BaseNameHashValue and 0x1f
-            PebLdrEntry     = NtCurrentPeb().Ldr
+            PebLdrEntry     = ntCurrentPeb().Ldr
     
         INIT_LIST_ENTRY ctx.entry.HashLinks
 
         if LOCK_PEB_LOCK().isOk():
-            insertTailList(LdrpHashTable.get() +! (LdrpHashIndex * sizeOf LIST_ENTRY), addr ctx.entry.HashLinks)
+            insertTailList(LdrpHashTable.value +! (LdrpHashIndex * sizeOf LIST_ENTRY), addr ctx.entry.HashLinks)
             insertTailList(PebLdrEntry.InLoadOrderModuleList, addr ctx.entry.InLoadOrderLinks)
             insertTailList(PebLdrEntry.InMemoryOrderModuleList, addr ctx.entry.InMemoryOrderLinks)
             insertTailList(PebLdrEntry.InInitializationOrderModuleList, addr ctx.entry.InInitializationOrderLinks)
@@ -138,7 +138,7 @@ proc ldrCompleteLdrEntry(ctx: PLoadContext): NtResult[void] =
     ctx.entry.BaseNameHashValue = ? ldrHashUnicode(ctx.entry.BaseDllName)
     ctx.entry.EntryPoint        = ctx.entry.DLLBase +! NtHeaders.OptionalHeader.AddressOfEntryPoint
     ctx.entry.LoadReason        = LoadReasonDynamicLoad
-    ctx.entry.LoadTime          = GetSystemTime()[]
+    ctx.entry.LoadTime          = getSystemTime()[]
     ctx.entry.ReferenceCount    = 1
     ctx.entry.TimeDateStamp     = NtHeaders.FileHeader.TimeDateStamp
     ctx.entry.ObsoleteLoadCount = 0xffff
@@ -189,14 +189,12 @@ proc ldrSetProtections(ctx: PLoadContext): NtResult[void] =
         ModuleBasePtr   = ctx.entry.DLLBase
 
     if not NT_SUCCESS NtProtectVirtualMemoryWrapper(
-        RtlCurrentProcess(), 
+        rtlCurrentProcess(), 
         ModuleBasePtr, 
         moduleSz, 
         oldProtections, 
         addr oldProtections,
-        NtSyscall.wSyscall, 
-        NtSyscall.pSyscall, 
-        NtSyscall.pFunction
+        NtSyscall
     ): return err SyscallFailure
 
     for Section in NtHeaders.sections():
@@ -205,7 +203,7 @@ proc ldrSetProtections(ctx: PLoadContext): NtResult[void] =
             isExecutable    = Section.Characteristics && IMAGE_SCN_MEM_EXECUTE.DWORD
             isReadable      = Section.Characteristics && IMAGE_SCN_MEM_READ.DWORD
             isWriteable     = Section.Characteristics.int && 0x80000000.int
-
+            
             if (not isExecutable) and (not isReadable) and (not isWriteable):
                 newProtections = PAGE_NOACCESS
             elif (not isExecutable) and (not isReadable) and isWriteable:
@@ -230,14 +228,12 @@ proc ldrSetProtections(ctx: PLoadContext): NtResult[void] =
             regionSize  = Section.SizeOfRawData
 
             if not NT_SUCCESS NtProtectVirtualMemoryWrapper(
-                RtlCurrentProcess(), 
+                rtlCurrentProcess(), 
                 SectionBase, 
                 regionSize, 
                 newProtections, 
                 addr oldProtections,
-                NtSyscall.wSyscall, 
-                NtSyscall.pSyscall, 
-                NtSyscall.pFunction
+                NtSyscall
             ): return err SyscallFailure
     
     ok()
@@ -259,14 +255,12 @@ proc ldrUnsetProtections*(ctx: PLoadContext): NtResult[void] =
             sectionBase = ctx.entry.DLLBase +! Section.VirtualAddress
             sectionSize = Section.SizeOfRawData
             status = NtProtectVirtualMemoryWrapper(
-                RtlCurrentProcess(), 
+                rtlCurrentProcess(), 
                 sectionBase, 
                 sectionSize, 
                 PAGE_READWRITE, 
                 addr protections,
-                NtProtectSyscall.wSyscall, 
-                NtProtectSyscall.pSyscall, 
-                NtProtectSyscall.pFunction
+                NtProtectSyscall
             )
     ok()
 

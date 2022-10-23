@@ -56,7 +56,7 @@ const
 ## NtQuery* APIs
 ##------------------------------------------------------------------------
 template GET_BASIC_SYSTEM_INFO*(sysInfo: var SYSTEM_BASIC_INFORMATION): NtResult[void] =
-    eNtQuerySystemInformation(
+    ntQuerySystemInformation(
         cast[PVOID](addr sysInfo), 
         SYSTEM_INFORMATION_CLASS.SystemBasicInformation, 
         sizeOf(SYSTEM_BASIC_INFORMATION)
@@ -68,7 +68,7 @@ template GET_BASIC_VM_INFO*(
     memInfo: var MEMORY_BASIC_INFORMATION, 
     retLength: PSIZE_T
 ): NtResult[void] =
-    eNtQueryVirtualMemory(
+    ntQueryVirtualMemory(
         processHandle, 
         baseAddress, 
         cast[PVOID](addr memInfo), 
@@ -88,7 +88,7 @@ template getNtQuerySystemInformation*(
 ): NtResult[NtSyscall[NtQuerySystemInformation]] =
     getNtSyscall[NtQuerySystemInformation](Ntdll, importBase, NtQuerySystemInformationHash, symEnum, ssnEnum, exeEnum)
 
-proc eNtQuerySystemInformation*(systemInfo: PVOID, systemClass: SYSTEM_INFORMATION_CLASS, systemSz: SIZE_T): NtResult[void] =
+proc ntQuerySystemInformation*(systemInfo: PVOID, systemClass: SYSTEM_INFORMATION_CLASS, systemSz: SIZE_T): NtResult[void] =
     genSyscall(NtQuerySystemInformation)
     let 
         Ntdll       = ? NTDLL_BASE()
@@ -104,7 +104,7 @@ proc eNtQuerySystemInformation*(systemInfo: PVOID, systemClass: SYSTEM_INFORMATI
         systemInfo, 
         systemSz.ULONG, 
         NULL,
-        NtSyscall.wSyscall, NtSyscall.pSyscall, NtSyscall.pFunction
+        NtSyscall
     ): void
     
 ## Time/Performance
@@ -118,7 +118,7 @@ template getNtQueryPerformanceCounter*(
 ): NtResult[NtSyscall[NtQueryPerformanceCounter]] =
     getNtSyscall[NtQueryPerformanceCounter](Ntdll, importBase, NtQueryPerformanceCounterHash, symEnum, ssnEnum, exeEnum)
 
-proc eNtQueryPerformanceCounter*(perfCounter: var LARGE_INTEGER, perfFrequency: PLARGE_INTEGER): NtResult[void] {.discardable.} =
+proc ntQueryPerformanceCounter*(perfCounter: var LARGE_INTEGER, perfFrequency: PLARGE_INTEGER): NtResult[void] {.discardable.} =
     genSyscall(NtQueryPerformanceCounter)
     let
         Ntdll       = ? NTDLL_BASE()
@@ -131,14 +131,14 @@ proc eNtQueryPerformanceCounter*(perfCounter: var LARGE_INTEGER, perfFrequency: 
     NT_RESULT NtQueryPerformanceCounterWrapper(
         perfCounter, 
         perfFrequency,
-        NtSyscall.wSyscall, NtSyscall.pSyscall, NtSyscall.pFunction
+        NtSyscall
     ): void
 
 proc getNtQuerySystemTime*(Ntdll: ModuleHandle): NtResult[NtQuerySystemTime] {.inline.} =
     let f = ? getProcAddress(Ntdll, NtQuerySystemTimeHash)
     ok cast[NtQuerySystemTime](f)
 
-proc eNtQuerySystemTime*(systemTime: var LARGE_INTEGER): NtResult[void] {.discardable.} =
+proc ntQuerySystemTime*(systemTime: var LARGE_INTEGER): NtResult[void] {.discardable.} =
     let 
         Ntdll       = ? NTDLL_BASE()
         NtSyscall   = ? getNtQuerySystemTime Ntdll
@@ -155,7 +155,7 @@ template getNtQueryVirtualMemory*(
 ): NtResult[NtSyscall[NtQueryVirtualMemory]] =
     getNtSyscall[NtQueryVirtualMemory](Ntdll, importBase, NtQueryVirtualMemoryHash, symEnum, ssnEnum, exeEnum)
 
-proc eNtQueryVirtualMemory*(
+proc ntQueryVirtualMemory*(
     processHandle: HANDLE, 
     baseAddress: PVOID, 
     memInfo: PVOID, 
@@ -179,5 +179,5 @@ proc eNtQueryVirtualMemory*(
         memInfo, 
         memSz, 
         returnLength,
-        NtSyscall.wSyscall, NtSyscall.pSyscall, NtSyscall.pFunction
+        NtSyscall
     ): void

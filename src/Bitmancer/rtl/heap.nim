@@ -17,7 +17,6 @@
 ##  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ## 
 ##----------------------------------------------------------------------------------
-
 import
     ../core/obfuscation/hash,
     ../core
@@ -38,13 +37,13 @@ const
 ## Helpers
 ##---------------------------------------------------------------------
 template PROCESS_HEAP_ALLOC*(T: typedesc): NtResult[PVOID] =
-    eRtlAllocateHeap(RtlProcessHeap(), HEAP_ZERO_MEMORY, sizeof(T))
+    rtlAllocateHeap(rtlProcessHeap(), HEAP_ZERO_MEMORY, sizeof(T))
 
 template PROCESS_HEAP_ALLOC*(sz: SIZE_T): NtResult[PVOID] =
-    eRtlAllocateHeap(RtlProcessHeap(), HEAP_ZERO_MEMORY, sz)
+    rtlAllocateHeap(rtlProcessHeap(), HEAP_ZERO_MEMORY, sz)
 
 template PROCESS_HEAP_FREE*(mem: PVOID): NtResult[void] =
-    eRtlFreeHeap(RtlProcessHeap(), 0, mem)
+    rtlFreeHeap(rtlProcessHeap(), 0, mem)
 
 ## RtlAllocateHeap
 ##------------------------------------
@@ -52,7 +51,7 @@ proc getRtlAllocateHeap*(Ntdll: ModuleHandle): NtResult[RtlAllocateHeap] {.inlin
     let f = ? getProcAddress(Ntdll, RtlAllocateHeapHash)
     ok cast[RtlAllocateHeap](f)
 
-proc eRtlAllocateHeap*(hHeap: HANDLE, dwFlags: ULONG, size: SIZE_T): NtResult[PVOID] =
+proc rtlAllocateHeap*(hHeap: HANDLE, dwFlags: ULONG, size: SIZE_T): NtResult[PVOID] =
     let 
         Ntdll               = ? NTDLL_BASE()
         pRtlAllocateHeap    = ? getRtlAllocateHeap Ntdll
@@ -75,7 +74,7 @@ proc getRtlFreeHeap*(Ntdll: ModuleHandle): NtResult[RtlFreeHeap] {.inline.} =
     let f = ? getProcAddress(Ntdll, RtlFreeHeapHash)
     ok cast[RtlFreeHeap](f)
 
-proc eRtlFreeHeap*(hHeap: HANDLE, dwFlags: ULONG, pAllocMemory: PVOID): NtResult[void] {.discardable.} =
+proc rtlFreeHeap*(hHeap: HANDLE, dwFlags: ULONG, pAllocMemory: PVOID): NtResult[void] {.discardable.} =
     let 
         Ntdll           = ? NTDLL_BASE()
         pRtlFreeHeap    = ? getRtlFreeHeap Ntdll

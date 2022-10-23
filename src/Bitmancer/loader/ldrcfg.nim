@@ -17,7 +17,6 @@
 ##  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ## 
 ##----------------------------------------------------------------------------------
-
 import
     ldrbase
 
@@ -33,12 +32,12 @@ proc ldrGenSecurityCookie(): NtResult[UINT_PTR] =
     var 
         cookie      = UINT_PTR 0
         perfCounter = LARGE_INTEGER()
-    let time        = GetSystemTime()
-    ? eNtQueryPerformanceCounter(perfCounter, NULL)
+    let time        = getSystemTime()
+    ? ntQueryPerformanceCounter(perfCounter, NULL)
     cookie = cast[UINT_PTR]((time.QuadPart shr 32) xor time.QuadPart)
-    cookie ^= GetProcessId()
-    cookie ^= GetThreadId()
-    cookie ^= GetTickCount() 
+    cookie ^= getProcessId()
+    cookie ^= getThreadId()
+    cookie ^= getTickCount() 
     when defined(cpu64):
         cookie ^= perfCounter.QuadPart
     else:

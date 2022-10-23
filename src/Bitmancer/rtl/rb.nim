@@ -17,7 +17,6 @@
 ##  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ## 
 ##----------------------------------------------------------------------------------
-
 import
     ../core/obfuscation/hash,
     ../core
@@ -37,7 +36,7 @@ proc getRtlRbInsertNodeEx*(Ntdll: ModuleHandle): NtResult[RtlRbInsertNodeEx] {.i
     let f = ? getProcAddress(Ntdll, RtlRbInsertNodeExHash)
     ok cast[RtlRbInsertNodeEx](f)
 
-proc eRtlRbInsertNodeEx*( 
+proc rtlRbInsertNodeEx*( 
     pRtlRbTree: PRTL_RB_TREE, 
     parent: PRTL_BALANCED_NODE, 
     bRight: BOOLEAN, 
@@ -55,7 +54,7 @@ proc getRtlRbRemoveNode*(Ntdll: ModuleHandle): NtResult[RtlRbRemoveNode] {.inlin
     let f = ? getProcAddress(Ntdll, RtlRbRemoveNodeHash)
     ok cast[RtlRbRemoveNode](f)
 
-proc eRtlRbRemoveNode*(pRtlRbTree: PRTL_RB_TREE, node: PRTL_BALANCED_NODE): NtResult[void] =
+proc rtlRbRemoveNode*(pRtlRbTree: PRTL_RB_TREE, node: PRTL_BALANCED_NODE): NtResult[void] =
     let 
         Ntdll               = ? NTDLL_BASE()
         pRtlRbRemoveNode    = ? getRtlRbRemoveNode Ntdll
@@ -64,7 +63,7 @@ proc eRtlRbRemoveNode*(pRtlRbTree: PRTL_RB_TREE, node: PRTL_BALANCED_NODE): NtRe
 
 ## Rtl*BaseAddressIndex
 ##------------------------------------
-proc RtlInsertNodeBaseAddressIndex*(imageEntry: PLDR_DATA_TABLE_ENTRY): NtResult[void] =
+proc rtlInsertNodeBaseAddressIndex*(imageEntry: PLDR_DATA_TABLE_ENTRY): NtResult[void] =
     let
         BaseAddressIndex    = ? getBaseAddressIndexTree()
         BaseNodeOffset      = offsetOf(LDR_DATA_TABLE_ENTRY, BaseAddressIndexNode)
@@ -88,15 +87,15 @@ proc RtlInsertNodeBaseAddressIndex*(imageEntry: PLDR_DATA_TABLE_ENTRY): NtResult
             ## Already in the tree, inc the ref count
             inc LdrEntry.DdagNode.LoadCount 
             return ok()
-    eRtlRbInsertNodeEx(BaseAddressIndex, addr LdrEntry.BaseAddressIndexNode, bRight, addr imageEntry.BaseAddressIndexNode)
+    rtlRbInsertNodeEx(BaseAddressIndex, addr LdrEntry.BaseAddressIndexNode, bRight, addr imageEntry.BaseAddressIndexNode)
 
-proc RtlRemoveNodeBaseAddressIndex*(imageEntry: PLDR_DATA_TABLE_ENTRY): NtResult[void] =
+proc rtlRemoveNodeBaseAddressIndex*(imageEntry: PLDR_DATA_TABLE_ENTRY): NtResult[void] =
     let BaseAddressIndex = ? getBaseAddressIndexTree()
-    eRtlRbRemoveNode(BaseAddressIndex, addr imageEntry.BaseAddressIndexNode)
+    rtlRbRemoveNode(BaseAddressIndex, addr imageEntry.BaseAddressIndexNode)
 
 ## Rtl*MappingInfoIndex
 ##------------------------------------
-proc RtlInsertNodeMappingInfoIndex*(imageEntry: PLDR_DATA_TABLE_ENTRY): NtResult[void] =
+proc rtlInsertNodeMappingInfoIndex*(imageEntry: PLDR_DATA_TABLE_ENTRY): NtResult[void] =
     let
         MappingInfoIndex    = ? getMappingInfoIndexTree()
         NtHeaders           = ? imageNtHeader imageEntry.DLLBase.ModuleHandle
@@ -124,9 +123,9 @@ proc RtlInsertNodeMappingInfoIndex*(imageEntry: PLDR_DATA_TABLE_ENTRY): NtResult
             ## Already in the tree, inc the ref count
             inc LdrEntry.DdagNode.LoadCount 
             return ok()
-    eRtlRbInsertNodeEx(MappingInfoIndex, addr LdrEntry.MappingInfoIndexNode, bRight, addr imageEntry.MappingInfoIndexNode)
+    rtlRbInsertNodeEx(MappingInfoIndex, addr LdrEntry.MappingInfoIndexNode, bRight, addr imageEntry.MappingInfoIndexNode)
 
-proc RtlRemoveNodeMappingInfoIndex*(imageEntry: PLDR_DATA_TABLE_ENTRY): NtResult[void] {.discardable.} =
+proc rtlRemoveNodeMappingInfoIndex*(imageEntry: PLDR_DATA_TABLE_ENTRY): NtResult[void] {.discardable.} =
     let MappingInfoIndex = ? getMappingInfoIndexTree()
-    eRtlRbRemoveNode(MappingInfoIndex, addr imageEntry.MappingInfoIndexNode)
+    rtlRbRemoveNode(MappingInfoIndex, addr imageEntry.MappingInfoIndexNode)
 

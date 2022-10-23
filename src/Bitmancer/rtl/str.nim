@@ -17,7 +17,6 @@
 ##  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ## 
 ##----------------------------------------------------------------------------------
-
 import
     ../core/obfuscation/hash,
     ../core
@@ -50,7 +49,7 @@ proc getRtlHashUnicodeString*(Ntdll: ModuleHandle): NtResult[RtlHashUnicodeStrin
     let f = ? getProcAddress(Ntdll, RtlHashUnicodeStringHash)
     ok cast[RtlHashUnicodeString](f)
 
-proc eRtlHashUnicodeString*(s: PUNICODE_STRING, inSensitive: BOOLEAN, hashAlgo: ULONG): NtResult[ULONG] =
+proc rtlHashUnicodeString*(s: PUNICODE_STRING, inSensitive: BOOLEAN, hashAlgo: ULONG): NtResult[ULONG] =
     let 
         Ntdll                   = ? NTDLL_BASE()
         pRtlHashUnicodeString   = ? getRtlHashUnicodeString Ntdll
@@ -67,14 +66,14 @@ proc getRtlInitUnicodeString*(Ntdll: ModuleHandle): NtResult[RtlInitUnicodeStrin
     let f = ? getProcAddress(Ntdll, RtlInitUnicodeStringHash)
     ok cast[RtlInitUnicodeString](f)
 
-proc eRtlInitUnicodeString*(dest: var UNICODE_STRING, src: PCWSTR): NtResult[void] =
+proc rtlInitUnicodeString*(dest: var UNICODE_STRING, src: PCWSTR): NtResult[void] =
     let 
         Ntdll                 = ? NTDLL_BASE()
         pRtlInitUnicodeString = ? getRtlInitUnicodeString Ntdll
     pRtlInitUnicodeString(dest, src)
     ok()
 
-func cRtlInitUnicodeString*(dest: var UNICODE_STRING, src: PCWSTR) =
+func rtlInitUnicodeString*(dest: var UNICODE_STRING, src: PCWSTR) =
     if not src.isNil():
         let destSize        = src.len() * sizeof(WCHAR)
         dest.Length         = cast[USHORT](destSize)
@@ -90,7 +89,7 @@ proc getRtlFreeUnicodeString*(Ntdll: ModuleHandle): NtResult[RtlFreeUnicodeStrin
     let f = ? getProcAddress(Ntdll, RtlFreeUnicodeStringHash)
     ok cast[RtlFreeUnicodeString](f)
 
-proc eRtlFreeUnicodeString*(s: var UNICODE_STRING): NtResult[void] {.discardable.} =
+proc rtlFreeUnicodeString*(s: var UNICODE_STRING): NtResult[void] {.discardable.} =
     let 
         Ntdll                   = ? NTDLL_BASE()
         pRtlFreeUnicodeString   = ? getRtlFreeUnicodeString Ntdll

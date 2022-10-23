@@ -63,68 +63,67 @@ template NT_MAP_VIEW_OF_SECTION_SIG(ldrsigs: PLdrpThunkSignatures): WORD =
 
 ## Helpers
 ##------------------------------------
-proc bLdrThunkFindCleanStub(stub: var PVOID) =
+proc ldrThunkFindCleanStub(stub: var PVOID) =
     for i in 0 ..< 500:    
         ## check neighboring syscall down
-        if checkStub(stub, DWORD(i * StubOffsetDown), true).isOk():
+        if checkStub(stub, DWORD(i * StubOffsetDown)).isOk():
             stub +=! DWORD(i * StubOffsetDown)
             break
         ## check neighboring syscall up
-        if checkStub(stub, DWORD(i * StubOffsetUp), true).isOk():
+        if checkStub(stub, DWORD(i * StubOffsetUp)).isOk():
             stub -=! DWORD(i * StubOffsetUp)
             break
 
-proc bLdrThunkFindSyscall(ident: SomeProcIdent): NtResult[(PVOID, bool)] =
+proc ldrThunkFindSyscall(ident: SomeProcIdent): NtResult[PVOID] =
     let Ntdll               = ? NTDLL_BASE()
     var inMemNtUnmapView    = ? getProcAddress(Ntdll, ident)
-    let isInMemNtdllHooked  = inMemNtUnmapView.isHooked()
-    if isInMemNtdllHooked:
-        bLdrThunkFindCleanStub inMemNtUnmapView
-    ok (inMemNtUnmapView, isInMemNtdllHooked)
+    if inMemNtUnmapView.isHooked():
+        ldrThunkFindCleanStub inMemNtUnmapView
+    ok (inMemNtUnmapView)
 
-proc bLdrThunkGetSyscallResult(pCleanNtdll: ModuleHandle, ident: SomeProcIdent): SyscallResult =
+proc ldrThunkGetSyscallResult(pCleanNtdll: ModuleHandle, ident: SomeProcIdent): SyscallResult =
     ## Retrieves the Nt* API `T`'s SSN from the Clean NTDLL. Then finds a syscall address and 
     ## instruction from the in memory NTDLL to use for the indirect syscall.
     let 
-        cleanNtUnmapView        = ? getProcAddress(pCleanNtdll, ident)
-        cleanSyscallResult      = ? checkStub(cleanNtUnmapView, 0, false)
-        (pInMemFunc, isHooked)  = ? bLdrThunkFindSyscall(ident)
+        cleanNtUnmapView    = ? getProcAddress(pCleanNtdll, ident)
+        cleanSyscallResult  = ? checkStub(cleanNtUnmapView, 0)
+        pInMemFunc          = ? ldrThunkFindSyscall(ident)
+    ok Syscall(
+        wSyscall: cleanSyscallResult.wSyscall,
+        pSyscall: pInMemFunc
+    )
 
-    ok (cleanSyscallResult.wSyscall, pInMemFunc, isHooked)
-
-proc bLdrThunkGetNtSyscall(pCleanNtdll: ModuleHandle, T: typedesc, ident: SomeProcIdent): NtResult[NtSyscall[T]] {.inline.} =
-    let syscallRes = ? bLdrThunkGetSyscallResult(pCleanNtdll, ident)
+proc ldrThunkGetNtSyscall(pCleanNtdll: ModuleHandle, T: typedesc, ident: SomeProcIdent): NtResult[NtSyscall[T]] {.inline.} =
+    let syscallRes = ? ldrThunkGetSyscallResult(pCleanNtdll, ident)
     ok NtSyscall[T](
-        wSyscall:   syscallRes.wSyscall,
-        pSyscall:   syscallRes.pSyscall,
-        isHooked:   syscallRes.isHooked,
+        syscall:    syscallRes,
         pFunction:  cast[T](spoofStub)
     )
 
-proc bLdrThunkCleanUp(sHandle: HANDLE, pCleanNtdll: ModuleHandle): NtResult[void] {.discardable.} =
+proc ldrThunkCleanUp(sHandle: HANDLE, pCleanNtdll: ModuleHandle): NtResult[void] {.discardable.} =
     genSyscall(NtUnmapViewOfSection)
     genSyscall(NtClose)
     let 
-        NtSyscallClose      = ? bLdrThunkGetNtSyscall(pCleanNtdll, NtClose, NtCloseHash)
-        NtSyscallUnmapView  = bLdrThunkGetNtSyscall(pCleanNtdll, NtUnmapViewOfSection, NtUnmapViewOfSectionHash)
+        NtSyscallClose      = ? ldrThunkGetNtSyscall(pCleanNtdll, NtClose, NtCloseHash)
+        NtSyscallUnmapView  = ldrThunkGetNtSyscall(pCleanNtdll, NtUnmapViewOfSection, NtUnmapViewOfSectionHash)
         .valueOr():
-            discard NtCloseWrapper(sHandle, NtSyscallClose.wSyscall, NtSyscallClose.pSyscall, NtSyscallClose.pFunction)
+            discard NtCloseWrapper(sHandle, NtSyscallClose)
             return err SyscallNotFound
         
     if not NT_SUCCESS NtUnmapViewOfSectionWrapper(
-        RtlCurrentProcess(),
+        rtlCurrentProcess(),
         pCleanNtdll.PVOID,
-        NtSyscallUnmapView.wSyscall, NtSyscallUnmapView.pSyscall, NtSyscallUnmapView.pFunction
+        NtSyscallUnmapView
     ): return err SyscallFailure
 
     NT_RESULT NtCloseWrapper(
         sHandle,
-        NtSyscallClose.wSyscall, NtSyscallClose.pSyscall, NtSyscallClose.pFunction
+        NtSyscallClose
     ): void
 
 ## Map Clean NTDLL
 ##------------------------------------
-func bGetLdrThunks(imageBase: ModuleHandle): NtResult[PLdrpThunkSignatures] =
+func getLdrThunks(imageBase: ModuleHandle): NtResult[PLdrpThunkSignatures] =
     let pSection        = ? getDataSection(imageBase)
     var pCurrentAddr    = SECTION_START(imageBase, pSection)
     
@@ -134,7 +133,7 @@ func bGetLdrThunks(imageBase: ModuleHandle): NtResult[PLdrpThunkSignatures] =
         pCurrentAddr = pCurrentAddr +! 4
     err SignaturesNotFound
 
-proc bLdrThunkOpenSection(sHandle: var HANDLE, ssn: WORD): NtResult[void] =
+proc ldrThunkOpenSection(sHandle: var HANDLE, ssn: WORD): NtResult[void] =
     genSyscall(NtOpenSection)
     var knownDlls {.stackStringW.}  = "\\KnownDlls\\ntdll.dll"
     
@@ -147,61 +146,65 @@ proc bLdrThunkOpenSection(sHandle: var HANDLE, ssn: WORD): NtResult[void] =
     InitializeObjectAttributes(addr objAttributes, addr objPath, 0, sHandle, NULL)
   
     ## Get a syscall instruction for indirect jump
-    let (pInMemFunc, isHooked) = ? bLdrThunkFindSyscall(NtOpenSectionHash)
+    let pInMemFunc = ? ldrThunkFindSyscall(NtOpenSectionHash)
 
     ## Do Syscall
     let NtOpenSect = NtSyscall[NtOpenSection](
-        wSyscall: ssn,
-        pSyscall: pInMemFunc,
-        isHooked: isHooked,
-        pFunction: cast[NtOpenSection](spoofStub),
+        syscall:    Syscall(
+            wSyscall: ssn,
+            pSyscall: pInMemFunc
+        ),
+        pFunction:  cast[NtOpenSection](spoofStub)
     )
     ## TODO: need SECTION_QUERY?
     NT_RESULT NtOpenSectionWrapper(
         sHandle, 
         ACCESS_MASK(SECTION_MAP_READ or SECTION_MAP_EXECUTE),
         addr objAttributes,
-        NtOpenSect.wSyscall, NtOpenSect.pSyscall, NtOpenSect.pFunction
+        NtOpenSect
     ): void
 
-proc bLdrThunkMapView(sHandle: HANDLE, pCleanNtdll: var ModuleHandle, ssn: WORD): NtResult[void] =
+proc ldrThunkMapView(sHandle: HANDLE, pCleanNtdll: var ModuleHandle, ssn: WORD): NtResult[void] =
     genSyscall(NtMapViewOfSection)
     var viewSize = SIZE_T(0)
 
     ## Get a syscall instruction for indirect jump
-    let (pInMemFunc, isHooked) = ? bLdrThunkFindSyscall(NtMapViewOfSectionHash)
+    let pInMemFunc = ? ldrThunkFindSyscall(NtMapViewOfSectionHash)
 
     let NtMapView = NtSyscall[NtMapViewOfSection](
-        wSyscall: ssn,
-        pSyscall: pInMemFunc,
-        isHooked: isHooked,
+        syscall:    Syscall(
+            wSyscall: ssn,
+            pSyscall: pInMemFunc,
+        ),
         pFunction: cast[NtMapViewOfSection](spoofStub)
     )
 
     NT_RESULT NtMapViewOfSectionWrapper(
-        sHandle, RtlCurrentProcess(), pCleanNtdll.PVOID, 
+        sHandle, rtlCurrentProcess(), pCleanNtdll.PVOID, 
         0, 0, NULL, viewSize, 1, 0, PAGE_READONLY, 
-        NtMapView.wSyscall, NtMapView.pSyscall, NtMapView.pFunction
+        NtMapView
     ): void
 
-proc bLdrThunkMapCleanNtdll(imageBase: ModuleHandle, sHandle: var HANDLE, pCleanNtdll: var ModuleHandle): NtResult[void] =
+proc ldrThunkMapCleanNtdll(imageBase: ModuleHandle, sHandle: var HANDLE, pCleanNtdll: var ModuleHandle): NtResult[void] =
     let 
-        pLdrThunkSignatures     = ? bGetLdrThunks(imageBase)
+        pLdrThunkSignatures     = ? getLdrThunks(imageBase)
         wNtOpenSection          = NT_OPEN_SECTION_SIG(pLdrThunkSignatures)
         wNtMapViewOfSection     = NT_MAP_VIEW_OF_SECTION_SIG(pLdrThunkSignatures)
     if wNtOpenSection == 0 or wNtMapViewOfSection == 0:
         return err SyscallNotFound
     
-    ? bLdrThunkOpenSection(sHandle, wNtOpenSection)
-    bLdrThunkMapView(sHandle, pCleanNtdll, wNtMapViewOfSection)
+    ? ldrThunkOpenSection(sHandle, wNtOpenSection)
+    ldrThunkMapView(sHandle, pCleanNtdll, wNtMapViewOfSection)
 
 ## Public
 ##------------------------------------
-proc bLdrThunks*(imageBase: ModuleHandle, ident: SomeProcIdent): SyscallResult =
+proc ldrThunksEat*(imageBase: ModuleHandle, ident: SomeProcIdent): SyscallResult =
     var 
         sectionHandle   = HANDLE(0)
         pCleanNtdll     = ModuleHandle(NULL)
-    ? bLdrThunkMapCleanNtdll(imageBase, sectionHandle, pCleanNtdll)
-    result = bLdrThunkGetSyscallResult(pCleanNtdll, ident)
-    bLdrThunkCleanUp(sectionHandle, pCleanNtdll)
+    ? ldrThunkMapCleanNtdll(imageBase, sectionHandle, pCleanNtdll)
+    result = ldrThunkGetSyscallResult(pCleanNtdll, ident)
+    ldrThunkCleanUp(sectionHandle, pCleanNtdll)
 
+template ldrThunks*(imageBase, importBase: ModuleHandle, ident: SomeProcIdent, symEnum: static SymbolEnumeration): SyscallResult =
+    ## TODO

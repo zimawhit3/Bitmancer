@@ -288,7 +288,7 @@ func addDrivePrefixU*(us: var UNICODE_STRING) =
 func addSystem32DirectoryU*(us: var UNICODE_STRING) =
     var system32 {.stackStringW.} = "\\System32\\"
     let 
-        cwindows    = cast[PWSTR](addr NtKUserSharedData().NtSystemRoot[0])
+        cwindows    = cast[PWSTR](addr ntKUserSharedData().NtSystemRoot[0])
         sys32       = cast[PWSTR](addr system32[0])
     us.add cwindows
     us.add sys32

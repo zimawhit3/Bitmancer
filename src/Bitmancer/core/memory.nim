@@ -17,7 +17,6 @@
 ##  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ## 
 ##----------------------------------------------------------------------------------
-
 import
     types
 export
@@ -30,7 +29,7 @@ template PAGE_BOUNDARY*(va: ULONG_PTR, pageSize = 0x1000): PVOID =
     else:
         cast[PVOID]((va +% pageSize) and not (pageSize -% 1))
 
-func moveMemory*(s1: pointer; s2: pointer; n: int): pointer {.discardable.} =
+proc moveMemory*(s1: pointer; s2: pointer; n: int): pointer {.discardable.} =
     var 
         cs1: ptr uint8
         cs2: ptr uint8

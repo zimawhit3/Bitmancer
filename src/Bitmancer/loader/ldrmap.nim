@@ -17,7 +17,6 @@
 ##  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ## 
 ##----------------------------------------------------------------------------------
-
 import
     mappings/[memory, native, remote],
     ldrcfg, ldrexceptions
@@ -31,16 +30,18 @@ export
 ## Helper Templates
 ##------------------------------------
 template LDR_MAP_MODULE*(ctx: PLoadContext): NtResult[void] =
-    if LOBYTE(ctx.flags) == ord LoadLocal:      ldrMapNativeModule ctx
-    elif LOBYTE(ctx.flags) == ord LoadMemory:   ldrMapMemoryModule ctx
-    elif LOBYTE(ctx.flags) == ord LoadRemote:   ldrMapRemoteModule ctx
-    else:                                       err(InvalidFlags)
+    case LOBYTE(ctx.flags)
+    of ord LoadLocal:   ldrMapNativeModule ctx
+    of ord LoadMemory:  ldrMapMemoryModule ctx
+    of ord LoadRemote:  ldrMapRemoteModule ctx
+    else:               err InvalidFlags
 
 template LDR_UNMAP_MODULE*(ctx: PLoadContext): NtResult[void] =
-    if LOBYTE(ctx.flags) == ord LoadLocal:      ldrUnmapNativeModule ctx
-    elif LOBYTE(ctx.flags) == ord LoadMemory:   ldrUnmapMemoryModule ctx
-    elif LOBYTE(ctx.flags) == ord LoadRemote:   ldrUnmapRemoteModule ctx
-    else:                                       err(InvalidFlags)
+    case LOBYTE(ctx.flags)
+    of ord LoadLocal:   ldrUnmapNativeModule ctx
+    of ord LoadMemory:  ldrUnmapMemoryModule ctx
+    of ord LoadRemote:  ldrUnmapRemoteModule ctx
+    else:               err InvalidFlags
 
 ## Loader Post-Mapping Private Routines
 ##------------------------------------
@@ -56,14 +57,18 @@ proc ldrCompleteMappedModule(ctx: PLoadContext): NtResult[void] =
         let relocations = ? getRelocationDirectory(imageBase)
         for reloc in relocations.relocs():
             for fixup in reloc.fixups():
-                if fixup.Type == IMAGE_REL_BASED_DIR64:
+                case fixup.Type
+                of IMAGE_REL_BASED_DIR64:
                     cast[PULONG_PTR](ctx.entry.DLLBase +! reloc.VirtualAddress +! DWORD(fixup.Offset))[] += baseOffset
-                elif fixup.Type == IMAGE_REL_BASED_HIGHLOW:
+                of IMAGE_REL_BASED_HIGHLOW:
                     cast[PULONG_PTR](ctx.entry.DLLBase +! reloc.VirtualAddress +! DWORD(fixup.Offset))[] += ULONG_PTR(baseOffset)
-                elif fixup.Type == IMAGE_REL_BASED_HIGH:
+                of IMAGE_REL_BASED_HIGH:
                     cast[PULONG_PTR](ctx.entry.DLLBase +! reloc.VirtualAddress +! DWORD(fixup.Offset))[] += ULONG_PTR(HIWORD(baseOffset))
-                elif fixup.Type == IMAGE_REL_BASED_LOW:
+                of IMAGE_REL_BASED_LOW:
                     cast[PULONG_PTR](ctx.entry.DLLBase +! reloc.VirtualAddress +! DWORD(fixup.Offset))[] += ULONG_PTR(LOWORD(baseOffset))
+                else:
+                    ## TODO
+                    continue
 
         ## Update NtHeaders
         NtHeaders.OptionalHeader.ImageBase = cast[ULONGLONG](ctx.entry.DLLBase)
@@ -73,10 +78,9 @@ proc ldrProcessMappedModule(ctx: PLoadContext): NtResult[void] =
     let 
         imageBase   = ctx.entry.DLLBase.ModuleHandle
         NtHeaders   = ? imageNtHeader imageBase
-        EntryPoint  = NtHeaders.OptionalHeader.AddressOfEntryPoint
 
     ## Validate Entrypoint
-    if NtHeaders.OptionalHeader.SizeOfHeaders > EntryPoint:
+    if NtHeaders.OptionalHeader.SizeOfHeaders > NtHeaders.OptionalHeader.AddressOfEntryPoint:
         return err ImageInvalid
 
     ctx.entry.OriginalBase = NtHeaders.OptionalHeader.ImageBase
@@ -86,7 +90,7 @@ proc ldrProcessMappedModule(ctx: PLoadContext): NtResult[void] =
 
 ## Loader Map Module
 ##------------------------------------
-proc ldrMapModule*(ctx: PLoadContext): NtResult[void] {.inline.} =
+proc ldrMapModule*(ctx: PLoadContext): NtResult[void] =
     ## Map the DLL into memory
     ? LDR_MAP_MODULE ctx
     ## Complete the mapped DLL

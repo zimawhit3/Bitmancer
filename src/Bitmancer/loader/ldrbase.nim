@@ -17,7 +17,6 @@
 ##  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ## 
 ##----------------------------------------------------------------------------------
-
 import
     ../ntdll
 
@@ -109,7 +108,7 @@ proc ldrInitialize*(
     var 
         baseDLLName = UNICODE_STRING()
         fullDLLName = UNICODE_STRING()
-    let baseName    = ? cPathFindFileNameW(fullName)
+    let baseName    = ? pathFindFileNameW(fullName)
     
     RTL_INIT_EMPTY_UNICODE_STRING(fullDLLName, fullName, fullName.len.USHORT)
     RTL_INIT_EMPTY_UNICODE_STRING(baseDLLName, baseName, baseName.len.USHORT)

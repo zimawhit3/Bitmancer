@@ -17,7 +17,6 @@
 ##  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ## 
 ##----------------------------------------------------------------------------------
-
 import
     base
 
@@ -29,7 +28,7 @@ export
 
 ## Hell's Gate 
 ##------------------------------------
-func bHellsGateParse(pFunction: PVOID): SyscallResult =
+func hellsGateParse(pFunction: PVOID): SyscallResult =
     var index = WORD(0)
     while true:
         ## check if syscall, in this case we are too far
@@ -39,61 +38,74 @@ func bHellsGateParse(pFunction: PVOID): SyscallResult =
         if cast[PBYTE](pFunction +! index)[] == 0xC3:
             return err SyscallNotFound
         ## check for SSN
-        if (result = checkStub(pFunction, DWORD(index), false); result.isOk()):
+        if (result = checkStub(pFunction, DWORD(index)); result.isOk()):
             return
         inc index
 
-proc bHellsGateEat*(imageBase: ModuleHandle, ident: SomeProcIdent): SyscallResult =
+proc hellsGateEat*(imageBase: ModuleHandle, ident: SomeProcIdent): SyscallResult =
     let pFunc = ? getProcAddress(imageBase, ident)
-    bHellsGateParse(pFunc)
+    hellsGateParse(pFunc)
 
-proc bHellsGateIat*(imageBase, importBase: ModuleHandle, ident: SomeThunkedIdent): SyscallResult =
+proc hellsGateIat*(imageBase, importBase: ModuleHandle, ident: SomeThunkedIdent): SyscallResult =
     let pFunc = ? getProcAddressEx(imageBase, importBase, ident)
-    bHellsGateParse(pFunc)
+    hellsGateParse(pFunc)
+
+template hellsGate*(imageBase, importBase: ModuleHandle, ident: SomeProcIdent, symEnum: static SymbolEnumeration): SyscallResult =
+    when symEnum == UseEAT: hellsGateEat(imageBase, ident)
+    elif symEnum == UseIAT: hellsGateIat(imageBase, ident)
 
 ## Halo's Gate 
 ##------------------------------------
-func bHalosGateParse(pFunction: PVOID): SyscallResult =
+func halosGateParse(pFunction: PVOID): SyscallResult =
     ## check for SSN
-    if (result = checkStub(pFunction, 0, false); result.isOk()):
+    if (result = checkStub(pFunction, 0); result.isOk()):
         return
     ## if hooked, check the neighborhood to find clean syscall
     if cast[PBYTE](pFunction)[] == 0xE9:
         for i in 0 ..< 500:
             ## check neighboring syscall down
-            if (result = checkStub(pFunction, DWORD(i * StubOffsetDown), true); result.isOk()):
+            if (result = checkStub(pFunction, DWORD(i * StubOffsetDown)); result.isOk()):
                 return
             ## check neighboring syscall up
-            if (result = checkStub(pFunction, DWORD(i * StubOffsetUp), true); result.isOk()):
+            if (result = checkStub(pFunction, DWORD(i * StubOffsetUp)); result.isOk()):
                 return
 
-proc bHalosGateEat*(imageBase: ModuleHandle, ident: SomeProcIdent): SyscallResult =
+proc halosGateEat*(imageBase: ModuleHandle, ident: SomeProcIdent): SyscallResult =
     let pFunc = ? getProcAddress(imageBase, ident)
-    bHalosGateParse(pFunc)
+    halosGateParse(pFunc)
 
-proc bHalosGateIat*(imageBase, importBase: ModuleHandle, ident: SomeThunkedIdent): SyscallResult =
+proc halosGateIat*(imageBase, importBase: ModuleHandle, ident: SomeThunkedIdent): SyscallResult =
     let pFunc = ? getProcAddressEx(imageBase, importBase, ident)
-    bHalosGateParse(pFunc)
+    halosGateParse(pFunc)
+
+template halosGate*(imageBase, importBase: ModuleHandle, ident: SomeProcIdent, symEnum: static SymbolEnumeration): SyscallResult =
+    when symEnum is UseEAT: halosGateEat(imageBase, ident)
+    elif symEnum is UseIAT: halosGateIat(imageBase, ident)
 
 ## Tartarus' Gate 
 ##------------------------------------
-func bTartarusGateParse(pFunction: PVOID): SyscallResult =
-    if (result = bHalosGateParse(pFunction); result.isOk()):
+func tartarusGateParse(pFunction: PVOID): SyscallResult =
+    if (result = halosGateParse(pFunction); result.isOk()):
         return
     ## if hooked after `mov r10, rcx`, check the neighborhood to find clean syscall
     if cast[PBYTE](pFunction +! 3)[] == 0xE9:
         for i in 0 ..< 500:
             ## check neighboring syscall down
-            if (result = checkStub(pFunction, DWORD(i * StubOffsetDown), true); result.isOk()):
+            if (result = checkStub(pFunction, DWORD(i * StubOffsetDown)); result.isOk()):
                 return
             ## check neighboring syscall up
-            if (result = checkStub(pFunction, DWORD(i * StubOffsetUp), true); result.isOk()):
+            if (result = checkStub(pFunction, DWORD(i * StubOffsetUp)); result.isOk()):
                 return
 
-proc bTartarusGateEat*(imageBase: ModuleHandle, ident: SomeProcIdent): SyscallResult =
+proc tartarusGateEat*(imageBase: ModuleHandle, ident: SomeProcIdent): SyscallResult =
     let pFunc = ? getProcAddress(imageBase, ident)
-    bTartarusGateParse(pFunc)
+    tartarusGateParse(pFunc)
 
-proc bTartarusGateIat*(imageBase, importBase: ModuleHandle, ident: SomeThunkedIdent): SyscallResult =
+proc tartarusGateIat*(imageBase, importBase: ModuleHandle, ident: SomeThunkedIdent): SyscallResult =
     let pFunc = ? getProcAddressEx(imageBase, importBase, ident)
-    bTartarusGateParse(pFunc)
+    tartarusGateParse(pFunc)
+
+template tartarusGate*(imageBase, importBase: ModuleHandle, ident: SomeProcIdent, symEnum: static SymbolEnumeration): SyscallResult =
+    when symEnum is UseEAT: tartarusGateEat(imageBase, ident)
+    elif symEnum is UseIAT: tartarusGateIat(imageBase, ident)
+

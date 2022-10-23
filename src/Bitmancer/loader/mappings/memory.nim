@@ -101,7 +101,7 @@ proc ldrMapMemoryImage(ctx: PLoadContext): NtResult[void] =
                 block searchBase:
                     for i in 0 ..< vmResvCount:
                         
-                        ? GET_BASIC_VM_INFO(RtlCurrentProcess(), contigiousBase, mbi, NULL)
+                        ? GET_BASIC_VM_INFO(rtlCurrentProcess(), contigiousBase, mbi, NULL)
                         
                         if mbi.State == MEM_FREE:
                             inc contigiousBlocks
@@ -114,7 +114,7 @@ proc ldrMapMemoryImage(ctx: PLoadContext): NtResult[void] =
 
         else:
             ## If not available, let the kernel assign us an address
-            ? GET_BASIC_VM_INFO(RtlCurrentProcess(), moduleBase, mbi, NULL)
+            ? GET_BASIC_VM_INFO(rtlCurrentProcess(), moduleBase, mbi, NULL)
             if mbi.State != MEM_FREE:
                 moduleBase = NULL
         
@@ -125,27 +125,23 @@ proc ldrMapMemoryImage(ctx: PLoadContext): NtResult[void] =
         
         for i in 0 ..< vmResvCount:
             let status = NtAllocateVirtualMemoryWrapper(
-                RtlCurrentProcess(), 
+                rtlCurrentProcess(), 
                 currentBase, 
                 0, 
                 szLen, 
                 MEM_RESERVE, 
                 PAGE_READWRITE,
-                NtAllocSyscall.wSyscall,
-                NtAllocSyscall.pSyscall,
-                NtAllocSyscall.pFunction
+                NtAllocSyscall
             )
             if not NT_SUCCESS status:
                 szLen       = SIZE_T(0)
                 currentBase = moduleBase
                 discard NtFreeVirtualMemoryWrapper(
-                    RtlCurrentProcess(),
+                    rtlCurrentProcess(),
                     currentBase,
                     szLen,
                     MEM_RELEASE,
-                    NtFreeSyscall.wSyscall,
-                    NtFreeSyscall.pSyscall,
-                    NtFreeSyscall.pFunction
+                    NtFreeSyscall
                 )
                 
                 ## If we reserved more than 1 block, release them
@@ -154,13 +150,11 @@ proc ldrMapMemoryImage(ctx: PLoadContext): NtResult[void] =
                         szLen       = SIZE_T(0)
                         currentBase = moduleBase +! (j * dwAllocGran)
                         discard NtFreeVirtualMemoryWrapper(
-                            RtlCurrentProcess(),
+                            rtlCurrentProcess(),
                             currentBase,
                             szLen,
                             MEM_RELEASE,
-                            NtFreeSyscall.wSyscall,
-                            NtFreeSyscall.pSyscall,
-                            NtFreeSyscall.pFunction
+                            NtFreeSyscall
                         )
                 
                 return err InsufficientMemory
@@ -186,15 +180,13 @@ proc ldrMapMemoryImage(ctx: PLoadContext): NtResult[void] =
                         break commitLoop
 
                     if not NT_SUCCESS NtAllocateVirtualMemoryWrapper(
-                        RtlCurrentProcess(), 
+                        rtlCurrentProcess(), 
                         currentBase, 
                         0, 
                         szLen, 
                         MEM_COMMIT, 
                         PAGE_READWRITE,
-                        NtAllocSyscall.wSyscall,
-                        NtAllocSyscall.pSyscall,
-                        NtAllocSyscall.pFunction
+                        NtAllocSyscall
                     ):
                         commitFail = true
                         break commitLoop
@@ -208,19 +200,17 @@ proc ldrMapMemoryImage(ctx: PLoadContext): NtResult[void] =
                 szLen       = SIZE_T(0)
                 currentBase = moduleBase +! ((i * dwAllocGran))
                 discard NtFreeVirtualMemoryWrapper(
-                    RtlCurrentProcess(), 
+                    rtlCurrentProcess(), 
                     currentBase, 
                     szLen, 
                     MEM_RELEASE,
-                    NtFreeSyscall.wSyscall,
-                    NtFreeSyscall.pSyscall,
-                    NtFreeSyscall.pFunction
+                    NtFreeSyscall
                 )
             return err InsufficientMemory
         
     else:
         if not NT_SUCCESS NtAllocateVirtualMemoryWrapper(
-            RtlCurrentProcess(), 
+            rtlCurrentProcess(), 
             moduleBase, 
             moduleSize, 
             MEM_RESERVE or MEM_COMMIT,
@@ -265,13 +255,11 @@ proc ldrUnmapMemoryImage(ctx: PLoadContext): NtResult[void] =
             tmpSize     = SIZE_T(0)
             currentBase = ctx.entry.DLLBase +! (i * dwAllocGran)
             discard NtFreeVirtualMemoryWrapper(
-                RtlCurrentProcess(), 
+                rtlCurrentProcess(), 
                 currentBase, 
                 tmpSize, 
                 MEM_RELEASE,
-                NtFreeSyscall.wSyscall,
-                NtFreeSyscall.pSyscall,
-                NtFreeSyscall.pFunction
+                NtFreeSyscall
             )
 
     else:
@@ -292,11 +280,14 @@ proc ldrUnmapMemoryImage(ctx: PLoadContext): NtResult[void] =
 ## Public Map / Unmap
 ##------------------------------------
 proc ldrMapMemoryModule*(ctx: PLoadContext): NtResult[void] {.inline.} =
-    if ctx.flags && FORMAT_IMAGE:   ldrMapMemoryImage ctx
-    elif ctx.flags && FORMAT_COFF:  ldrMapMemoryCOFF ctx
-    else:                           err InvalidFlags
+    case ctx.flags
+    of FORMAT_IMAGE:    ldrMapMemoryImage ctx
+    of FORMAT_COFF:     ldrMapMemoryCOFF ctx
+    else:               err InvalidFlags
 
 proc ldrUnmapMemoryModule*(ctx: PLoadContext): NtResult[void] {.inline.} =
-    if ctx.flags && FORMAT_IMAGE:   ldrUnmapMemoryImage ctx
-    elif ctx.flags && FORMAT_COFF:  ldrUnmapMemoryCOFF ctx
-    else:                           err InvalidFlags
+    case ctx.flags
+    of FORMAT_IMAGE:    ldrUnmapMemoryImage ctx
+    of FORMAT_COFF:     ldrUnmapMemoryCOFF ctx
+    else:               err InvalidFlags
+

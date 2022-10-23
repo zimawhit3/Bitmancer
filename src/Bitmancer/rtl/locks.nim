@@ -17,7 +17,6 @@
 ##  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ## 
 ##----------------------------------------------------------------------------------
-
 import
     ../core/obfuscation/hash,
     ../core
@@ -38,16 +37,16 @@ const
 ## Template Helpers for Common Locks
 ##---------------------------------------------------------------------
 template LOCK_LOADER_LOCK*(): NtResult[void] =
-    eRtlEnterCriticalSection GetLoaderLock()
+    rtlEnterCriticalSection getLoaderLock()
 
 template UNLOCK_LOADER_LOCK*(): NtResult[void] =
-    eRtlLeaveCriticalSection GetLoaderLock()
+    rtlLeaveCriticalSection getLoaderLock()
 
 template LOCK_PEB_LOCK*(): NtResult[void] =
-    eRtlEnterCriticalSection GetPebFastLock()
+    rtlEnterCriticalSection getPebFastLock()
 
 template UNLOCK_PEB_LOCK*(): NtResult[void] =
-    eRtlLeaveCriticalSection GetPebFastLock()
+    rtlLeaveCriticalSection getPebFastLock()
 
 ## RtlAcquireSRWLockExclusive
 ##------------------------------------
@@ -55,7 +54,7 @@ proc getRtlAcquireSRWLockExclusive*(Ntdll: ModuleHandle): NtResult[RtlAcquireSRW
     let f = ? getProcAddress(Ntdll, RtlAcquireSRWLockExclusiveHash)
     ok cast[RtlAcquireSRWLockExclusive](f)
 
-proc eRtlAcquireSRWLockExclusive*(srwlock: PRTL_SRWLOCK): NtResult[void] {.discardable.} =
+proc rtlAcquireSRWLockExclusive*(srwlock: PRTL_SRWLOCK): NtResult[void] {.discardable.} =
     let 
         Ntdll                       = ? NTDLL_BASE()
         pRtlAcquireSRWLockExclusive = ? getRtlAcquireSRWLockExclusive Ntdll
@@ -68,7 +67,7 @@ proc getRtlInitializeSRWLock*(Ntdll: ModuleHandle): NtResult[RtlInitializeSRWLoc
     let f = ? getProcAddress(Ntdll, RtlInitializeSRWLockHash)
     ok cast[RtlInitializeSRWLock](f)
 
-proc eRtlInitializeSRWLock*(lock: var RTL_SRWLOCK): NtResult[void] =
+proc rtlInitializeSRWLock*(lock: var RTL_SRWLOCK): NtResult[void] =
     let
         Ntdll                   = ? NTDLL_BASE()
         pRtlInitializeSRWLock   = ? getRtlInitializeSRWLock Ntdll
@@ -81,7 +80,7 @@ proc getRtlReleaseSRWLockExclusive*(Ntdll: ModuleHandle): NtResult[RtlReleaseSRW
     let f = ? getProcAddress(Ntdll, RtlReleaseSRWLockExclusiveHash)
     ok cast[RtlReleaseSRWLockExclusive](f)
 
-proc eRtlReleaseSRWLockExclusive*(srwlock: PRTL_SRWLOCK): NtResult[void] {.discardable.} =
+proc rtlReleaseSRWLockExclusive*(srwlock: PRTL_SRWLOCK): NtResult[void] {.discardable.} =
     let 
         Ntdll                       = ? NTDLL_BASE()
         pRtlReleaseSRWLockExclusive = ? getRtlReleaseSRWLockExclusive Ntdll
@@ -94,7 +93,7 @@ proc getRtlEnterCriticalSection*(Ntdll: ModuleHandle): NtResult[RtlEnterCritical
     let f = ? getProcAddress(Ntdll, RtlEnterCriticalSectionHash)
     ok cast[RtlEnterCriticalSection](f)
 
-proc eRtlEnterCriticalSection*(lock: PRTL_CRITICAL_SECTION): NtResult[void] =
+proc rtlEnterCriticalSection*(lock: PRTL_CRITICAL_SECTION): NtResult[void] =
     let 
         Ntdll                       = ? NTDLL_BASE()
         pRtlEnterCriticalSection    = ? getRtlEnterCriticalSection(Ntdll)
@@ -106,7 +105,7 @@ proc getRtlLeaveCriticalSection*(Ntdll: ModuleHandle): NtResult[RtlLeaveCritical
     let f = ? getProcAddress(Ntdll, RtlLeaveCriticalSectionHash)
     ok cast[RtlLeaveCriticalSection](f)
 
-proc eRtlLeaveCriticalSection*(lock: PRTL_CRITICAL_SECTION): NtResult[void] =
+proc rtlLeaveCriticalSection*(lock: PRTL_CRITICAL_SECTION): NtResult[void] =
     let 
         Ntdll                       = ? NTDLL_BASE()
         pRtlLeaveCriticalSection    = ? getRtlLeaveCriticalSection Ntdll

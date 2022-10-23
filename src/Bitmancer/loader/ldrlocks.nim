@@ -17,7 +17,6 @@
 ##  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ## 
 ##----------------------------------------------------------------------------------
-
 import
     ../core/obfuscation/hash,
     ../core/enumeration/enumeration,
@@ -37,10 +36,10 @@ const
 template LDR_WITH_MRDATA_LOCK*(body: NtResult[void]): NtResult[void] =
     let 
         LdrpMrdataLock  = ? getLdrpMrdataLock()
-        locked          = eRtlAcquireSRWLockExclusive LdrpMrdataLock
+        locked          = rtlAcquireSRWLockExclusive LdrpMrdataLock
         res = body
     if locked.isOk():
-        eRtlReleaseSRWLockExclusive LdrpMrdataLock
+        rtlReleaseSRWLockExclusive LdrpMrdataLock
     res
 
 proc getLdrpMrdataLock*(): NtResult[PRTL_SRWLOCK] =
@@ -60,10 +59,10 @@ proc getLdrpMrdataLock*(): NtResult[PRTL_SRWLOCK] =
 template LDR_WITH_DATATABLE_LOCK*(body: NtResult[void]): NtResult[void] =
     let 
         LdrpModuleDatatableLock = ? getLdrpModuleDatatableLock()
-        locked  = eRtlAcquireSRWLockExclusive LdrpModuleDatatableLock
+        locked  = rtlAcquireSRWLockExclusive LdrpModuleDatatableLock
         res     = body
     if locked.isOk():
-        eRtlReleaseSRWLockExclusive LdrpModuleDatatableLock
+        rtlReleaseSRWLockExclusive LdrpModuleDatatableLock
     res
 
 proc getLdrpModuleDatatableLock*(): NtResult[PRTL_SRWLOCK] =

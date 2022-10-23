@@ -83,7 +83,7 @@ template getNtClose*(
 ): NtResult[NtSyscall[NtClose]] =
     getNtSyscall[NtClose](Ntdll, importBase, NtCloseHash, symEnum, ssnEnum, exeEnum)
 
-proc eNtClose*(h: HANDLE): NtResult[void] {.discardable.} =
+proc ntClose*(h: HANDLE): NtResult[void] {.discardable.} =
     genSyscall(NtClose)
     let 
         Ntdll       = ? NTDLL_BASE()
@@ -93,7 +93,7 @@ proc eNtClose*(h: HANDLE): NtResult[void] {.discardable.} =
             elif CloseSymEnum == SymbolEnumeration.UseIAT:
                 let Kernel32 = ? KERNEL32_BASE()
                 ? getNtClose(Ntdll, Kernel32)
-    NT_RESULT NtCloseWrapper(h, NtSyscall.wSyscall, NtSyscall.pSyscall, NtSyscall.pFunction): void
+    NT_RESULT NtCloseWrapper(h, NtSyscall): void
 
 ## NtCreateSection
 ##------------------------------------
@@ -106,7 +106,7 @@ template getNtCreateSection*(
 ): NtResult[NtSyscall[NtCreateSection]] =
     getNtSyscall[NtCreateSection](Ntdll, importBase, NtCreateSectionHash, symEnum, ssnEnum, exeEnum)
 
-proc eNtCreateSection*(
+proc ntCreateSection*(
     sectionHandle: var HANDLE,
     desiredAccess: ACCESS_MASK,
     objAttributes: POBJECT_ATTRIBUTES,
@@ -132,7 +132,7 @@ proc eNtCreateSection*(
         sectionPageProt,
         allocAttributes,
         fileHandle,
-        NtSyscall.wSyscall, NtSyscall.pSyscall, NtSyscall.pFunction
+        NtSyscall
     ): void
 
 ## NtMapViewOfSection
@@ -146,7 +146,7 @@ template getNtMapViewOfSection*(
 ): NtResult[NtSyscall[NtMapViewOfSection]] =
     getNtSyscall[NtMapViewOfSection](Ntdll, importBase, NtMapViewOfSectionHash, symEnum, ssnEnum, exeEnum)
 
-proc eNtMapViewOfSection*(
+proc ntMapViewOfSection*(
     sectionHandle: HANDLE,
     processHandle: HANDLE,
     baseAddress: var PVOID,
@@ -178,7 +178,7 @@ proc eNtMapViewOfSection*(
         inheritDisp,
         allocType,
         win32Protect,
-        NtSyscall.wSyscall, NtSyscall.pSyscall, NtSyscall.pFunction
+        NtSyscall
     ): void
 
 ## NtOpenFile
@@ -192,7 +192,7 @@ template getNtOpenFile*(
 ): NtResult[NtSyscall[NtOpenFile]] =
     getNtSyscall[NtOpenFile](Ntdll, importBase, NtOpenFileHash, symEnum, ssnEnum, exeEnum)
 
-proc eNtOpenFile*(
+proc ntOpenFile*(
     fileHandle: var HANDLE,
     desiredAccess: ACCESS_MASK,
     objAttributes: POBJECT_ATTRIBUTES,
@@ -217,7 +217,7 @@ proc eNtOpenFile*(
         statusBlock,
         shareAccess,
         openOptions,
-        NtSyscall.wSyscall, NtSyscall.pSyscall, NtSyscall.pFunction
+        NtSyscall
     ): void
 
 ## NtOpenSection
@@ -231,7 +231,7 @@ template getNtOpenSection*(
 ): NtResult[NtSyscall[NtOpenSection]] =
     getNtSyscall[NtOpenSection](Ntdll, importBase, NtOpenSectionHash, symEnum, ssnEnum, exeEnum)
 
-proc eNtOpenSection*(sectionHandle: var HANDLE, desiredAccess: ACCESS_MASK, objAttributes: POBJECT_ATTRIBUTES): NtResult[void] =
+proc ntOpenSection*(sectionHandle: var HANDLE, desiredAccess: ACCESS_MASK, objAttributes: POBJECT_ATTRIBUTES): NtResult[void] =
     genSyscall(NtOpenSection)
     let 
         Ntdll = ? NTDLL_BASE()
@@ -245,7 +245,7 @@ proc eNtOpenSection*(sectionHandle: var HANDLE, desiredAccess: ACCESS_MASK, objA
         sectionHandle,
         desiredAccess,
         objAttributes,
-        NtSyscall.wSyscall, NtSyscall.pSyscall, NtSyscall.pFunction
+        NtSyscall
     ): void
 
 ## NtUnmapViewOfSection
@@ -259,7 +259,7 @@ template getNtUnmapViewOfSection*(
 ): NtResult[NtSyscall[NtUnmapViewOfSection]] =
     getNtSyscall[NtUnmapViewOfSection](Ntdll, importBase, NtUnmapViewOfSectionHash, symEnum, ssnEnum, exeEnum)
 
-proc eNtUnmapViewOfSection*(processHandle: HANDLE, baseAddress: PVOID): NtResult[void] {.discardable.} =
+proc ntUnmapViewOfSection*(processHandle: HANDLE, baseAddress: PVOID): NtResult[void] {.discardable.} =
     genSyscall(NtUnmapViewOfSection)
     let 
         Ntdll       = ? NTDLL_BASE()
@@ -273,6 +273,6 @@ proc eNtUnmapViewOfSection*(processHandle: HANDLE, baseAddress: PVOID): NtResult
     NT_RESULT NtUnmapViewOfSectionWrapper(
         processHandle, 
         baseAddress, 
-        NtSyscall.wSyscall, NtSyscall.pSyscall, NtSyscall.pFunction
+        NtSyscall
     ): void
 

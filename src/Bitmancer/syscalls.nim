@@ -17,59 +17,35 @@
 ##  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ## 
 ##----------------------------------------------------------------------------------
-
 import
-    std/macros,
     core/enumeration/memory/syscalls,
     syscalls/[gates, ldrthunks, zwcounter]
 
 export
-    macros, gates, ldrthunks, zwcounter
+    gates, ldrthunks, zwcounter
 
 ## NT Syscalls
 ## 
 ##  This module implements support for finding, parsing, and executing 
 ##  syscalls.
 ##------------------------------------------------------------------------
-template ctGetSyscall*(
+template GET_SYSCALL*(
     imageBase: ModuleHandle, 
     importBase: ModuleHandle,
     ident: static[SomeProcIdent], 
     symEnum: static[SymbolEnumeration], 
-    ssnEnum: static[SsnEnumeration]): SyscallResult =
-    block:
-        checkValidOSVersionTarget(ssnEnum)
-        when symEnum == SymbolEnumeration.UseEAT:
-            when ssnEnum == SsnEnumeration.HalosGate:       bHalosGateEat(imageBase, ident)
-            elif ssnEnum == SsnEnumeration.HellsGate:       bHellsGateEat(imageBase, ident)
-            elif ssnEnum == SsnEnumeration.LdrThunks:       bLdrThunks(imageBase, ident)
-            elif ssnEnum == SsnEnumeration.TartarusGate:    bTartarusGateEat(imageBase, ident)
-            elif ssnEnum == SsnEnumeration.ZwCounter:       bZwCounterEat(imageBase, ident)
-        elif symEnum == SymbolEnumeration.UseIAT:
-            when ssnEnum == SsnEnumeration.HalosGate:       bHalosGateIat(imageBase, importBase, ident)
-            elif ssnEnum == SsnEnumeration.HellsGate:       bHellsGateIat(imageBase, importBase, ident)
-            elif ssnEnum == SsnEnumeration.LdrThunks:       bLdrThunks(imageBase, ident)
-            elif ssnEnum == SsnEnumeration.TartarusGate:    bTartarusGateIat(imageBase, importBase, ident)
-            elif ssnEnum == SsnEnumeration.ZwCounter:       bZwCounterIat(importBase, ident)
+    ssnEnum: static[SsnEnumeration]
+): SyscallResult =
+    checkValidOSVersionTarget(ssnEnum)
+    when ssnEnum == SsnEnumeration.HalosGate:       halosGate(imageBase, importBase, ident, symEnum)
+    elif ssnEnum == SsnEnumeration.HellsGate:       hellsGate(imageBase, importBase, ident, symEnum)
+    elif ssnEnum == SsnEnumeration.LdrThunks:       ldrThunks(imageBase, importBase, ident, symEnum)
+    elif ssnEnum == SsnEnumeration.TartarusGate:    tartarusGate(imageBase, importBase, ident, symEnum)
+    elif ssnEnum == SsnEnumeration.ZwCounter:       zwCounter(imageBase, importBase, ident, symEnum)
 
-template NT_STUB*[T](syscall: tuple[wSyscall: WORD, pSyscall: PVOID, isHooked: bool], exeEnum: static[SyscallExecution]): T =
-    when exeEnum == SyscallExecution.Direct:
-        when UseNativeWhenNotHooked:
-            if syscall.isHooked:
-                cast[T](directStub)
-            else:
-                cast[T](syscall.pSyscall)
-        else:
-            cast[T](directStub)
-    
-    elif exeEnum == SyscallExecution.Indirect:
-        when UseNativeWhenNotHooked:
-            if syscall.isHooked:
-                cast[T](spoofStub)
-            else:
-                cast[T](syscall.pSyscall)
-        else:
-            cast[T](spoofStub)
+template NT_STUB*[T](syscall: Syscall, exeEnum: static[SyscallExecution]): T =
+    when exeEnum == SyscallExecution.Direct:    cast[T](directStub)
+    elif exeEnum == SyscallExecution.Indirect:  cast[T](spoofStub)
 
 proc getNtSyscall*[T](
     Ntdll: ModuleHandle,
@@ -78,19 +54,11 @@ proc getNtSyscall*[T](
     symEnum: static[SymbolEnumeration], 
     ssnEnum: static[SsnEnumeration],
     exeEnum: static[SyscallExecution]
-): NtResult[NtSyscall[T]] {.inline.} =
+): NtResult[NtSyscall[T]] =
     let 
-        sysRes      = ? ctGetSyscall(Ntdll, importBase, ident, symEnum, ssnEnum)
+        sysRes      = ? GET_SYSCALL(Ntdll, importBase, ident, symEnum, ssnEnum)
         funct       = NT_STUB[T](sysRes, exeEnum)
-        pSyscall    = 
-            when exeEnum == SyscallExecution.Direct: 
-                sysRes.pSyscall
-            elif exeEnum == SyscallExecution.Indirect: 
-                getSyscallInstruction sysRes.pSyscall
-
     ok NtSyscall[T](
-        wSyscall: sysRes.wSyscall, 
-        pSyscall: pSyscall,
-        pFunction: funct, 
-        isHooked: sysRes.isHooked
+        syscall:    sysRes,
+        pFunction:  funct
     )

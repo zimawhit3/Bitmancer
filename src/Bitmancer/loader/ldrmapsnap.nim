@@ -117,7 +117,7 @@ proc ldrResolveImports*(ctx: PLoadContext): NtResult[void] =
             iatSize = SIZE_T(RelocationSection.Misc.VirtualSize)
             oldProt = ULONG(PAGE_READWRITE)
 
-        if eNtProtectVirtualMemory(
+        if ntProtectVirtualMemory(
             iatBase,
             iatSize,
             oldProt,
@@ -145,11 +145,11 @@ proc ldrSnapModule*(ctx: PLoadContext): NtResult[void] {.inline.} =
     ## Snaps the DLL's imports
     ldrResolveImports ctx
 
-proc ldrMapAndSnap*(ctx: PLoadContext): NtResult[void] {.inline.} =
+proc ldrMapAndSnap*(ctx: PLoadContext): NtResult[void] =
     ## Map the DLL into memory
     ? ldrMapModule ctx
     ## Snaps the DLL's imports
     ? ldrSnapModule ctx
     ## Flush the cpu
-    eNtFlushInstructionCache(RtlCurrentProcess(), NULL, 0)
+    ntFlushInstructionCache(rtlCurrentProcess(), NULL, 0)
 

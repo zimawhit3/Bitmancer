@@ -17,12 +17,11 @@
 ##  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ## 
 ##----------------------------------------------------------------------------------
-
 import
-    errors, intrinsics, types, utils
+    intrinsics, ntresult, types, utils
     
 export
-    errors, types
+    ntresult, types
 
 const
     TEB_OFFSET_64 = 0x30
@@ -41,59 +40,59 @@ template NT_RESULT*(status: NTSTATUS, body: untyped): Result[type(body), NtError
     else:
         err SyscallFailure
 
-func NtCurrentTeb*(): PTEB {.inline, codeGenDecl: "__forceinline $# $#$#".} =
+func ntCurrentTeb*(): PTEB {.inline, codeGenDecl: "__forceinline $# $#$#".} =
     when defined(cpu64):    cast[PTEB](readgsqword(TEB_OFFSET_64))
     elif defined(i386):     cast[PTEB](readfsdword(TEB_OFFSET_32))
 
-func NtCurrentPeb*(): PPEB {.inline, codeGenDecl: "__forceinline $# $#$#".} =
+func ntCurrentPeb*(): PPEB {.inline, codeGenDecl: "__forceinline $# $#$#".} =
     when defined(cpu64):    cast[PPEB](readgsqword(PEB_OFFSET_64))
     elif defined(i386):     cast[PPEB](readfsdword(PEB_OFFSET_32))
 
-func NtKUserSharedData*(): PKUSER_SHARED_DATA {.inline.} =
+func ntKUserSharedData*(): PKUSER_SHARED_DATA {.inline.} =
     cast[PKUSER_SHARED_DATA](KUSER_SHARED_DATA_ADDRESS)
 
-func RtlProcessHeap*(): HANDLE {.inline.} =
-    cast[HANDLE](NtCurrentPeb().ProcessHeap)
+func rtlProcessHeap*(): HANDLE {.inline.} =
+    cast[HANDLE](ntCurrentPeb().ProcessHeap)
 
-template RtlCurrentProcess*(): HANDLE =
+template rtlCurrentProcess*(): HANDLE =
     HANDLE(-1)
 
-func GetApiSet*(): PAPI_SET_NAMESPACE {.inline.} =
-    NtCurrentPeb().ApiSetMap
+func getApiSet*(): PAPI_SET_NAMESPACE {.inline.} =
+    ntCurrentPeb().ApiSetMap
 
-func GetProcessId*(): UINT_PTR {.inline.} =
-    cast[UINT_PTR](NtCurrentTeb().ClientId.UniqueProcess)
+func getProcessId*(): UINT_PTR {.inline.} =
+    cast[UINT_PTR](ntCurrentTeb().ClientId.UniqueProcess)
 
-func GetStackBase*(): PVOID {.inline.} =
-    NtCurrentTeb().NtTib.StackBase
+func getStackBase*(): PVOID {.inline.} =
+    ntCurrentTeb().NtTib.StackBase
 
-func GetStackLimit*(): PVOID {.inline.} =
-    NtCurrentTeb().NtTib.StackLimit
+func getStackLimit*(): PVOID {.inline.} =
+    ntCurrentTeb().NtTib.StackLimit
 
-func GetThreadId*(): UINT_PTR {.inline.} =
-    cast[UINT_PTR](NtCurrentTeb().ClientId.UniqueThread)
+func getThreadId*(): UINT_PTR {.inline.} =
+    cast[UINT_PTR](ntCurrentTeb().ClientId.UniqueThread)
 
-func GetTickCount*(): ULONGLONG {.inline.} =
-    let kusd = NtKUserSharedData()
+func getTickCount*(): ULONGLONG {.inline.} =
+    let kusd = ntKUserSharedData()
     cast[ULONGLONG]((cast[uint64](kusd.Union3.TickCount) * cast[uint64](kusd.TickCountMultiplier)) shr 0x18)
 
-func GetSystemTime*(): PLARGE_INTEGER {.inline.} =
-    cast[PLARGE_INTEGER](addr NtKUserSharedData().SystemTime)
+func getSystemTime*(): PLARGE_INTEGER {.inline.} =
+    cast[PLARGE_INTEGER](addr ntKUserSharedData().SystemTime)
   
-func GetLoaderLock*(): PRTL_CRITICAL_SECTION {.inline.} =
-    NtCurrentPeb().LoaderLock
+func getLoaderLock*(): PRTL_CRITICAL_SECTION {.inline.} =
+    ntCurrentPeb().LoaderLock
 
-func GetPebFastLock*(): PRTL_CRITICAL_SECTION {.inline.} =
-    NtCurrentPeb().FastPebLock
+func getPebFastLock*(): PRTL_CRITICAL_SECTION {.inline.} =
+    ntCurrentPeb().FastPebLock
 
-func OsBuildNumber*(): USHORT {.inline.} =
-    NtCurrentPeb().OSBuildNumber
+func getOSBuildNumber*(): USHORT {.inline.} =
+    ntCurrentPeb().OSBuildNumber
 
-func OSMajorVersion*(): ULONG {.inline.} =
-    NtCurrentPeb().OSMajorVersion
+func getOSMajorVersion*(): ULONG {.inline.} =
+    ntCurrentPeb().OSMajorVersion
 
-func OSMinorVersion*(): ULONG {.inline.} =
-    NtCurrentPeb().OSMinorVersion
+func getOSMinorVersion*(): ULONG {.inline.} =
+    ntCurrentPeb().OSMinorVersion
 
 ## LDR_DATA_TABLE_ENTRY Bit Fields
 ##------------------------------------------------------------------------

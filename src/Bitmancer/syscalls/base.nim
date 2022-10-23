@@ -17,7 +17,6 @@
 ##  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ## 
 ##----------------------------------------------------------------------------------
-
 import
     std/macros,
     ../core/enumeration/memory/syscalls,
@@ -32,9 +31,7 @@ const
     
 type
     NtSyscall*[T] {.byCopy.} = object
-        isHooked*:  bool
-        wSyscall*:  WORD
-        pSyscall*:  PVOID
+        syscall*:   Syscall
         pFunction*: T
 
 ## Compile Time Options
@@ -58,11 +55,6 @@ type
 ## Compile Time Settings
 ##------------------------------------------------------------------------
 const
-    ## UseNativeWhenNotHooked
-    ##  Use NTDLL's native stub when the syscall wrapper function isn't hooked.
-    ##--------------------------------------
-    UseNativeWhenNotHooked* {.boolDefine.} = false
-
     ## SpoofCallStack
     ##  Spoof the call stack to evade stack introspection from EDRs when an Instrumented Callback
     ##  is registered.
@@ -100,15 +92,16 @@ func spoofStub*() {.asmNoStackFrame, inline.} =
         static: {.fatal: "Support for x86 not implemented yet".}
         
 template PRE_CALL*() =
-    {.passC: "-masm=att".}
     when defined(cpu64):
         {.emit: [
             """asm volatile(
-                " mov %%r14w, %0\n\t"
-                " mov %%r15, %1\n\t"
+                "mov r14w, %c[wSyscall] %0\n\t"
+                "mov r15, %c[pSyscall] %0\n\t"
                 :
-                : "m"(wSyscall), "m"(pSyscall)
-                : "%r14", "%r15"
+                :"m"(ntSyscall), 
+                 [wSyscall] "i" (offsetof(""", Syscall, """, wSyscall)),
+                 [pSyscall] "i" (offsetof(""", Syscall, """, pSyscall))
+                : "r14", "r15"
             );
             """
         ].}
@@ -118,6 +111,24 @@ template PRE_CALL*() =
 
 ## Nt Syscall Generation
 ##------------------------------------
+proc newProc(name = newEmptyNode();
+              genericParams: NimNode = newEmptyNode();
+              params: openArray[NimNode] = [newEmptyNode()];
+              body: NimNode = newStmtList();
+              procType = nnkProcDef;
+              pragmas: NimNode = newEmptyNode()): NimNode =
+    if procType notin RoutineNodes:
+        error("Expected one of " & $RoutineNodes & ", got " & $procType)
+    pragmas.expectKind({nnkEmpty, nnkPragma})
+    result = newNimNode(procType).add(
+        name,
+        newEmptyNode(),
+        genericParams,
+        newNimNode(nnkFormalParams).add(params),
+        pragmas,
+        newEmptyNode(),
+        body)
+
 proc newProcArgs(typedef: NimNode): seq[NimNode] {.compileTime.} =
     expectKind(typeDef, nnkTypeDef)
     result = newSeq[NimNode]()
@@ -132,13 +143,13 @@ proc newProcArgs(typedef: NimNode): seq[NimNode] {.compileTime.} =
                 else:
                     ident($fParam[1])
             result.add newIdentDefs(paramName, paramType)
-    let 
-        wSyscallParam   = newIdentDefs(ident"wSyscall", ident"WORD")
-        pSyscallParam   = newIdentDefs(ident"pSyscall", ident"PVOID")
-        pFuncParam      = newIdentDefs(ident"pFunction", ident($typedef[0]))
-    result.add wSyscallParam
-    result.add pSyscallParam
-    result.add pFuncParam
+    
+    let bracketExpr = newNimNode(nnkBracketExpr)
+    bracketExpr.add ident"NtSyscall"
+    bracketExpr.add ident"T"  
+
+    let ntSyscall   = newIdentDefs(ident"ntSyscall", bracketExpr)
+    result.add ntSyscall
 
 proc newProcPragma(typeDef: NimNode): NimNode {.compileTime.} =
     expectKind(typeDef, nnkTypeDef)
@@ -149,30 +160,36 @@ proc newProcPragma(typeDef: NimNode): NimNode {.compileTime.} =
 proc newProcBody(args: seq[NimNode]): NimNode {.compileTime.} =
     result = newStmtList()
     let 
-        preCall     = getAst(PRE_CALL())
         resultIdent = ident"result"
         bodyCall    = newNimNode(nnkCall)
-
-    bodyCall.add args[^1][0]
-    for i in 1 ..< args.len() - 3:
+        dotExpr     = newNimNode(nnkDotExpr)
+        ntSyscall   = ident"ntSyscall"
+    dotExpr.add ntSyscall
+    dotExpr.add ident"pFunction"
+    
+    bodyCall.add dotExpr
+    for i in 1 ..< args.len() - 1:
         bodyCall.add args[i][0]
 
     result = quote do:
-        `preCall`
+        PRE_CALL()
         `resultIdent` = `bodyCall`
 
 macro genSyscall*(T: typedesc) =
     let 
-        typeDef     = getImpl(T)
-        procArgs    = newProcArgs(typeDef)
+        typeDef         = getImpl(T)
+        procArgs        = newProcArgs(typeDef)
+        genericParams   = newNimNode(nnkGenericParams)
+
+    genericParams.add newIdentDefs(ident"T", newEmptyNode())
     
     result = newStmtList()
     result.add newProc(
         name = ident($typedef[0] & "Wrapper"),
+        genericParams = genericParams,
         params = procArgs,
         body = newProcBody(procArgs),
         pragmas = newProcPragma(typeDef)
     )
-
     when defined(nimDumpSyscalls):
         echo repr result

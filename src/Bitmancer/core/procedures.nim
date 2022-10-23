@@ -17,7 +17,6 @@
 ##  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ## 
 ##----------------------------------------------------------------------------------
-
 import
     enumeration/enumeration,
     obfuscation/hash,
@@ -47,7 +46,7 @@ proc allocateInternal(): NtResult[PVOID] =
         Ntdll               = ? NTDLL_BASE()
         f                   = ? getProcAddress(Ntdll, RtlAllocateHeapHash)
         pRtlAllocateHeap    = cast[RtlAllocateHeap](f)
-        pAllocMemory        = pRtlAllocateHeap(RtlProcessHeap(), HEAP_ZERO_MEMORY, MAX_PATH)
+        pAllocMemory        = pRtlAllocateHeap(rtlProcessHeap(), HEAP_ZERO_MEMORY, MAX_PATH)
     if not pAllocMemory.isNil():
         ok pAllocMemory
     else:
@@ -60,7 +59,7 @@ proc freeInternal(mem: PVOID): NtResult[void] {.discardable.} =
         Ntdll               = ? NTDLL_BASE()
         f                   = ? getProcAddress(Ntdll, RtlFreeHeapHash)
         pRtlFreeHeap        = cast[RtlFreeHeap](f)
-    if pRtlFreeHeap(RtlProcessHeap(), 0, mem) == 1:
+    if pRtlFreeHeap(rtlProcessHeap(), 0, mem) == 1:
         ok()
     else:
         err ProcedureFailure

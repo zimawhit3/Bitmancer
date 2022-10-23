@@ -43,7 +43,7 @@ const
 ##  for NT* APIs. Alternatively, we can find the highest address syscall stub coupled with the syscall's
 ##  address to count the SSN.
 ##-------------------------------------------------------------------------------------------------------------
-proc bZwCounterEatExc*(imageBase: ModuleHandle, ident: SomeProcIdent): SyscallResult =
+proc zwCounterEatExc*(imageBase: ModuleHandle, ident: SomeProcIdent): SyscallResult =
     var ssn         = WORD(0)
     let 
         rtfTable    = ? getExceptionDirectory imageBase
@@ -52,12 +52,15 @@ proc bZwCounterEatExc*(imageBase: ModuleHandle, ident: SomeProcIdent): SyscallRe
         for symName, ord, pFunc in imageBase.exports exports:
             if imageBase +% rtFunction.BeginAddress == pFunc:
                 if IDENT_MATCH(symName, ord, ident):
-                    return ok (wSyscall: ssn,  pSyscall: pFunc, isHooked: isHooked(pFunc))
+                    return ok Syscall(
+                        wSyscall: ssn, 
+                        pSyscall: ? getSyscallInstruction pFunc
+                    )
                 if symName[0] == 'Z' and symName[1] == 'w':
                     inc ssn
     err SyscallNotFound
 
-proc bZwCounterEatHighest*(imageBase: ModuleHandle, ident: SomeProcIdent): SyscallResult =
+proc zwCounterEatHighest*(imageBase: ModuleHandle, ident: SomeProcIdent): SyscallResult =
     var
         ssn             = WORD(0)
         pHighestAddr    = UINT_PTR(UINT_PTR.high)
@@ -75,17 +78,20 @@ proc bZwCounterEatHighest*(imageBase: ModuleHandle, ident: SomeProcIdent): Sysca
     ## Loop through the Zw/Nt call stubs until we hit our target
     for pStub in pHighestAddr.ntStubs():
         if pStub == pTargetAddr:
-            return ok (ssn, cast[PVOID](pTargetAddr), isHooked(cast[PVOID](pStub)))
+            return ok Syscall(
+                wSyscall: ssn, 
+                pSyscall: ? getSyscallInstruction(cast[PVOID](pTargetAddr))
+            )
         inc ssn
     err SyscallNotFound
 
-proc bZwCounterEat*(imageBase: ModuleHandle, ident: SomeProcIdent): SyscallResult {.inline.} =
+proc zwCounterEat*(imageBase: ModuleHandle, ident: SomeProcIdent): SyscallResult {.inline.} =
     when ZwCountingMethod == ZwCounterMethod.UseExceptionTable:
-        bZwCounterEatExc(imageBase, ident)
+        zwCounterEatExc(imageBase, ident)
     elif ZwCountingMethod == ZwCounterMethod.UseHighestAddress:
-        bZwCounterEatHighest(imageBase, ident)
+        zwCounterEatHighest(imageBase, ident)
 
-proc bZwCounterIat*(importBase: ModuleHandle, ident: SomeThunkedIdent): SyscallResult =
+proc zwCounterIat*(importBase: ModuleHandle, ident: SomeThunkedIdent): SyscallResult =
     
     when ZwCountingMethod == ZwCounterMethod.UseExceptionTable:
         static: {.fatal: "Cannot use exception table counting method for IAT-based symbol resolution.".}
@@ -122,6 +128,14 @@ proc bZwCounterIat*(importBase: ModuleHandle, ident: SomeThunkedIdent): SyscallR
         ## Loop through the NT* call stubs until we hit our target
         for pStub in pHighestAddr.ntStubs():
             if pStub == pTargetAddr:
-                return ok (ssn, cast[PVOID](pTargetAddr), isHooked(cast[PVOID](pStub)))
+                return ok Syscall(
+                    wSyscall: ssn, 
+                    pSyscall: ? getSyscallInstruction pTargetAddr
+                )
             inc ssn
         err SyscallNotFound
+
+template zwCounter*(imageBase, importBase: ModuleHandle, ident: SomeProcIdent, symEnum: static SymbolEnumeration): SyscallResult =
+    when symEnum == UseEAT: zwCounterEat(imageBase, ident)
+    elif symEnum == UseIAT: zwCounterIat(imageBase, importBase, ident)
+

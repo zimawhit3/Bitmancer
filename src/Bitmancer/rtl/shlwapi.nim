@@ -17,13 +17,12 @@
 ##  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ## 
 ##----------------------------------------------------------------------------------
-
 import
     ../core
 export
     core
 
-func cPathFindFileNameW*(path: LPCWSTR): NtResult[LPCWSTR] =
+func pathFindFileNameW*(path: LPCWSTR): NtResult[LPCWSTR] =
     if not path.isNil():
         var 
             tmp = cast[ptr UncheckedArray[WCHAR]](path)
