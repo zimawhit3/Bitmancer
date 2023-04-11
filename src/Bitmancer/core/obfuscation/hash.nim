@@ -28,7 +28,10 @@ export
 ##------------------------------------------------------------------------
 proc genRandomSeed(): uint32 {.compileTime.} =
     var seed: int
-    discard parseInt(staticExec("bash -c 'echo $SRANDOM'"), seed, 0)
+    when system.hostOS == "windows":
+        discard parseInt(staticExec("powershell.exe Get-Random -Maximum 99999999 -Minimum 10000000"), seed, 0)
+    else:
+        discard parseInt(staticExec("bash -c 'echo $SRANDOM'"), seed, 0)
     echo "[+] Seeded with: " & $seed
     var rng = initRand(seed)
     rng.rand(uint32.high).uint32
