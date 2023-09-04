@@ -72,27 +72,25 @@ const
 
 ## Stack Strings
 ##------------------------------------
-macro stackStringA*(varName: untyped, varType: untyped, varValue: static string) =
-    result = newStmtList()
-    let 
-        bracketExpr = makeBracketExpression(varValue, false)
-        identDef    = newIdentDefs(varName, bracketExpr)
-        varSect     = newNimNode(nnkVarSection).add identDef
-    result.add varSect
-    result.assignChars(varName, varValue, false)
-    when defined(nimDumpStackStrings):
-        echo repr result
+macro stackStringA*(sect) =
+  result = newStmtList()
+  let
+    def = sect[0]
+    bracketExpr = makeBracketExpression(def[2].strVal, false)
+    identDef = newIdentDefs(def[0], bracketExpr)
+    varSect = newNimNode(nnkVarSection).add(identDef)
+  result.add(varSect)
+  result.assignChars(def[0], def[2].strVal, false)
 
-macro stackStringW*(varName: untyped, varType: untyped, varValue: static string) =
-    result = newStmtList()
-    let 
-        bracketExpr = makeBracketExpression(varValue, true)
-        identDef    = newIdentDefs(varName, bracketExpr)
-        varSect     = newNimNode(nnkVarSection).add identDef
-    result.add varSect
-    result.assignChars(varName, varValue, true)
-    when defined(nimDumpStackStrings):
-        echo repr result
+macro stackStringW*(sect) =
+  result = newStmtList()
+  let
+    def = sect[0]
+    bracketExpr = makeBracketExpression(def[2].strVal, true)
+    identDef = newIdentDefs(def[0], bracketExpr)
+    varSect = newNimNode(nnkVarSection).add(identDef)
+  result.add(varSect)
+  result.assignChars(def[0], def[2].strVal, true)
 
 ## Utility Templates
 ##------------------------------------
